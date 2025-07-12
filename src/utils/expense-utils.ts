@@ -43,7 +43,8 @@ export const getCategoryBreakdown = (expenses: Expense[]): { [key: string]: numb
 export const getPaymentMethodBreakdown = (expenses: Expense[]): { [key: string]: number } => {
   return expenses.reduce((acc, expense) => {
     if (expense.transactionType === 'debit') {
-      acc[expense.paymentMethod] = (acc[expense.paymentMethod] || 0) + expense.amount;
+      const paymentMethod = expense.paymentMethod || 'N/A';
+      acc[paymentMethod] = (acc[paymentMethod] || 0) + expense.amount;
     }
     return acc;
   }, {} as { [key: string]: number });

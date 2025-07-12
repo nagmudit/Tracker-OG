@@ -5,11 +5,12 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { Expense, Category, ExpenseContextType } from "@/types/expense";
 import { defaultCategories } from "@/utils/expense-utils";
+import { useAuth } from "./AuthContext";
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
@@ -31,19 +32,37 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { user } = useAuth();
 
-  // Load data from localStorage on mount
+  const loadData = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Load expenses
+      const expensesResponse = await fetch("/api/expenses", {
+        credentials: "include",
+      });
+      if (expensesResponse.ok) {
+        const expensesData = await expensesResponse.json();
+        setExpenses(expensesData.expenses || []);
+      }
+
+      // Load categories
+      const categoriesResponse = await fetch("/api/categories", {
+        credentials: "include",
+      });
+      if (categoriesResponse.ok) {
+        const categoriesData = await categoriesResponse.json();
+        setCategories(categoriesData.categories || defaultCategories);
+      }
+    } catch (error) {
+      console.error("Failed to load data:", error);
+    }
+  }, [user]);
+
+  // Load theme from localStorage on mount
   useEffect(() => {
-    const savedExpenses = localStorage.getItem("expenses");
-    const savedCategories = localStorage.getItem("categories");
     const savedTheme = localStorage.getItem("theme");
-
-    if (savedExpenses) {
-      setExpenses(JSON.parse(savedExpenses));
-    }
-    if (savedCategories) {
-      setCategories(JSON.parse(savedCategories));
-    }
     if (savedTheme) {
       setTheme(savedTheme as "light" | "dark");
     } else {
@@ -55,15 +74,18 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     }
   }, []);
 
-  // Save to localStorage whenever data changes
+  // Load data when user is authenticated
   useEffect(() => {
-    localStorage.setItem("expenses", JSON.stringify(expenses));
-  }, [expenses]);
+    if (user) {
+      loadData();
+    } else {
+      // Clear data when user logs out
+      setExpenses([]);
+      setCategories(defaultCategories);
+    }
+  }, [user, loadData]);
 
-  useEffect(() => {
-    localStorage.setItem("categories", JSON.stringify(categories));
-  }, [categories]);
-
+  // Apply theme changes
   useEffect(() => {
     localStorage.setItem("theme", theme);
     const root = document.documentElement;
@@ -74,39 +96,111 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     }
   }, [theme]);
 
-  const addExpense = (expense: Omit<Expense, "id" | "createdAt">) => {
-    const newExpense: Expense = {
-      ...expense,
-      id: uuidv4(),
-      createdAt: new Date().toISOString(),
-    };
-    setExpenses((prev) => [newExpense, ...prev]);
+  const addExpense = async (expense: Omit<Expense, "id" | "createdAt">) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(expense),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExpenses((prev) => [data.expense, ...prev]);
+      }
+    } catch (error) {
+      console.error("Failed to add expense:", error);
+    }
   };
 
-  const deleteExpense = (id: string) => {
-    setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+  const deleteExpense = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(`/api/expenses?id=${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+      }
+    } catch (error) {
+      console.error("Failed to delete expense:", error);
+    }
   };
 
-  const updateExpense = (id: string, updatedExpense: Partial<Expense>) => {
-    setExpenses((prev) =>
-      prev.map((expense) =>
-        expense.id === id ? { ...expense, ...updatedExpense } : expense
-      )
-    );
+  const updateExpense = async (
+    id: string,
+    updatedExpense: Partial<Expense>
+  ) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/expenses", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ id, ...updatedExpense }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExpenses((prev) =>
+          prev.map((expense) => (expense.id === id ? data.expense : expense))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to update expense:", error);
+    }
   };
 
-  const addCategory = (category: Omit<Category, "id">) => {
-    const newCategory: Category = {
-      ...category,
-      id: uuidv4(),
-    };
-    setCategories((prev) => [...prev, newCategory]);
+  const addCategory = async (category: Omit<Category, "id">) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(category),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCategories((prev) => [...prev, data.category]);
+      }
+    } catch (error) {
+      console.error("Failed to add category:", error);
+    }
   };
 
-  const deleteCategory = (id: string) => {
+  const deleteCategory = async (id: string) => {
+    if (!user) return;
+
     const category = categories.find((cat) => cat.id === id);
     if (category && !category.isDefault) {
-      setCategories((prev) => prev.filter((cat) => cat.id !== id));
+      try {
+        const response = await fetch(`/api/categories?id=${id}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          setCategories((prev) => prev.filter((cat) => cat.id !== id));
+        }
+      } catch (error) {
+        console.error("Failed to delete category:", error);
+      }
     }
   };
 

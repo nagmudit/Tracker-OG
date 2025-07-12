@@ -8,26 +8,29 @@ import {
   Settings,
   Menu,
   X,
-  //   Sun,
-  //   Moon,
+  LogOut,
+  User,
+  UserCog,
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ExpenseList from "@/components/ExpenseList";
 import Analytics from "@/components/Analytics";
 import CategoryManager from "@/components/CategoryManager";
+import ProfileManager from "@/components/ProfileManager";
 import ExpenseForm from "@/components/ExpenseForm";
-// import { useExpense } from "@/context/ExpenseContext";
+import { useAuth } from "@/context/AuthContext";
 
 const Navigation: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  //   const { theme, toggleTheme } = useExpense();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "transactions", label: "Transactions", icon: List },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "categories", label: "Categories", icon: Settings },
+    { id: "profile", label: "Profile", icon: UserCog },
   ];
 
   const renderContent = () => {
@@ -40,6 +43,8 @@ const Navigation: React.FC = () => {
         return <Analytics />;
       case "categories":
         return <CategoryManager />;
+      case "profile":
+        return <ProfileManager />;
       default:
         return <Dashboard />;
     }
@@ -77,16 +82,30 @@ const Navigation: React.FC = () => {
                 Manage your finances
               </p>
             </div>
-            {/* <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              {theme === "light" ? (
-                <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              ) : (
-                <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-              )}
-            </button> */}
+          </div>
+
+          {/* User Info */}
+          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-pink-500 dark:bg-green-500 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {user?.email}
+                </p>
+              </div>
+              <button
+                onClick={logout}
+                className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 

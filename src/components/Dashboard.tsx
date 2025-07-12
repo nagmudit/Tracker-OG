@@ -183,7 +183,7 @@ const Dashboard: React.FC = () => {
                     {formatCurrency(transaction.amount)}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {transaction.paymentMethod.replace("-", " ")}
+                    {transaction.paymentMethod?.replace("-", " ") || "N/A"}
                   </p>
                 </div>
               </div>

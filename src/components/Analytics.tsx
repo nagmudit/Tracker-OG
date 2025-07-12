@@ -30,6 +30,18 @@ const Analytics: React.FC = () => {
   const { expenses, categories, theme } = useExpense();
 
   const analytics = useMemo(() => {
+    // Return empty analytics if no expenses
+    if (!expenses || expenses.length === 0) {
+      return {
+        totalExpenses: 0,
+        totalIncome: 0,
+        netBalance: 0,
+        categoryBreakdown: {},
+        paymentMethodBreakdown: {},
+        monthlyTrends: [],
+      };
+    }
+
     const totals = calculateTotals(expenses);
     const categoryBreakdown = getCategoryBreakdown(expenses);
     const paymentMethodBreakdown = getPaymentMethodBreakdown(expenses);
@@ -112,7 +124,9 @@ const Analytics: React.FC = () => {
   const paymentMethodData = Object.entries(
     analytics.paymentMethodBreakdown
   ).map(([method, amount]) => ({
-    name: method.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+    name:
+      method?.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase()) ||
+      "Unknown",
     value: amount,
   }));
 
@@ -179,134 +193,150 @@ const Analytics: React.FC = () => {
         Analytics
       </h2>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Expenses"
-          value={formatCurrency(analytics.totalExpenses)}
-          icon={TrendingDown}
-          color="text-red-600 dark:text-red-400"
-        />
-        <StatCard
-          title="Total Income"
-          value={formatCurrency(analytics.totalIncome)}
-          icon={TrendingUp}
-          color="text-green-600 dark:text-green-400"
-        />
-        <StatCard
-          title="Net Balance"
-          value={formatCurrency(analytics.netBalance)}
-          icon={DollarSign}
-          color={
-            analytics.netBalance >= 0
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
-          }
-        />
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Category Breakdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Expenses by Category
-          </h3>
-          {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({
-                    name,
-                    percent,
-                  }: {
-                    name: string;
-                    percent?: number;
-                  }) =>
-                    `${name} ${percent ? (percent * 100).toFixed(0) : "0"}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => formatCurrency(value as number)}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
-              No expense data available
-            </div>
-          )}
-        </div>
-
-        {/* Payment Method Breakdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Payment Methods
-          </h3>
-          {paymentMethodData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={paymentMethodData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" fill={themeColors.bar} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
-              No payment method data available
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Monthly Trends */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Monthly Trends
-        </h3>
-        {analytics.monthlyTrends.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={analytics.monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="expenses"
-                stroke={themeColors.danger}
-                strokeWidth={2}
-                name="Expenses"
-              />
-              <Line
-                type="monotone"
-                dataKey="income"
-                stroke={themeColors.success}
-                strokeWidth={2}
-                name="Income"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex items-center justify-center h-[400px] text-gray-500 dark:text-gray-400">
-            No trend data available
+      {/* Show empty state if no expenses */}
+      {!expenses || expenses.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No Data Available
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              Add some expenses to see analytics and insights.
+            </p>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatCard
+              title="Total Expenses"
+              value={formatCurrency(analytics.totalExpenses)}
+              icon={TrendingDown}
+              color="text-red-600 dark:text-red-400"
+            />
+            <StatCard
+              title="Total Income"
+              value={formatCurrency(analytics.totalIncome)}
+              icon={TrendingUp}
+              color="text-green-600 dark:text-green-400"
+            />
+            <StatCard
+              title="Net Balance"
+              value={formatCurrency(analytics.netBalance)}
+              icon={DollarSign}
+              color={
+                analytics.netBalance >= 0
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-600 dark:text-red-400"
+              }
+            />
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Category Breakdown */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Expenses by Category
+              </h3>
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({
+                        name,
+                        percent,
+                      }: {
+                        name: string;
+                        percent?: number;
+                      }) =>
+                        `${name} ${percent ? (percent * 100).toFixed(0) : "0"}%`
+                      }
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => formatCurrency(value as number)}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                  No expense data available
+                </div>
+              )}
+            </div>
+
+            {/* Payment Method Breakdown */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Payment Methods
+              </h3>
+              {paymentMethodData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={paymentMethodData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="value" fill={themeColors.bar} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-gray-500 dark:text-gray-400">
+                  No payment method data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Monthly Trends */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Monthly Trends
+            </h3>
+            {analytics.monthlyTrends.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={analytics.monthlyTrends}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="expenses"
+                    stroke={themeColors.danger}
+                    strokeWidth={2}
+                    name="Expenses"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="income"
+                    stroke={themeColors.success}
+                    strokeWidth={2}
+                    name="Income"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[400px] text-gray-500 dark:text-gray-400">
+                No trend data available
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

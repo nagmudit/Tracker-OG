@@ -93,7 +93,9 @@ const ExpenseList: React.FC = () => {
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {format(new Date(expense.date), "MMM dd, yyyy")} •{" "}
-                        {expense.paymentMethod.replace("-", " ")}
+                        {expense.paymentMethod
+                          ?.replace("-", " ")
+                          .toUpperCase() || "N/A"}
                       </p>
                     </div>
                   </div>
