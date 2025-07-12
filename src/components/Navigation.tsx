@@ -72,10 +72,10 @@ const Navigation: React.FC = () => {
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Expense Tracker
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -90,11 +90,11 @@ const Navigation: React.FC = () => {
               <div className="w-10 h-10 bg-pink-500 dark:bg-green-500 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user?.name}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                   {user?.email}
                 </p>
               </div>
@@ -143,7 +143,7 @@ const Navigation: React.FC = () => {
 
       {/* Main content */}
       <div className="lg:ml-64">
-        <div className="p-6 lg:p-8">{renderContent()}</div>
+        <div className="p-4 sm:p-6 lg:p-8">{renderContent()}</div>
       </div>
 
       {/* Floating Action Button */}

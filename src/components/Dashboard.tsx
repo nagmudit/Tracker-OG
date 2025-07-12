@@ -45,20 +45,20 @@ const Dashboard: React.FC = () => {
     color: string;
     change?: string;
   }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </p>
-          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          <p className={`text-xl sm:text-2xl font-bold ${color}`}>{value}</p>
           {change && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {change}
             </p>
           )}
         </div>
-        <Icon className="w-8 h-8 text-gray-400" />
+        <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
       </div>
     </div>
   );
@@ -70,7 +70,7 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
             Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -78,13 +78,13 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <select
             value={timeFilter}
             onChange={(e) =>
               setTimeFilter(e.target.value as "all" | "month" | "week")
             }
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 dark:focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 dark:focus:ring-green-500 dark:bg-gray-700 dark:text-white text-sm"
           >
             <option value="all">All Time</option>
             <option value="month">Last Month</option>
@@ -105,7 +105,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Expenses"
           value={formatCurrency(filteredTotals.totalExpenses)}
@@ -138,8 +138,8 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Recent Transactions
         </h2>
 
@@ -156,24 +156,24 @@ const Dashboard: React.FC = () => {
                 key={transaction.id}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-100 dark:bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-pink-600 dark:text-green-600 font-semibold">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-pink-100 dark:bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-pink-600 dark:text-green-600 font-semibold text-sm sm:text-base">
                       {transaction.category.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
                       {transaction.category}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       {new Date(transaction.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <p
-                    className={`font-bold ${
+                    className={`font-bold text-sm sm:text-base ${
                       transaction.transactionType === "credit"
                         ? "text-green-600 dark:text-green-400"
                         : "text-red-600 dark:text-red-400"
@@ -182,7 +182,7 @@ const Dashboard: React.FC = () => {
                     {transaction.transactionType === "credit" ? "+" : "-"}
                     {formatCurrency(transaction.amount)}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     {transaction.paymentMethod?.replace("-", " ") || "N/A"}
                   </p>
                 </div>

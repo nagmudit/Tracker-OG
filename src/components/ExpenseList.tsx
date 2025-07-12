@@ -39,11 +39,11 @@ const ExpenseList: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           Transaction History
         </h2>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <select
             value={filter}
             onChange={(e) =>
@@ -84,14 +84,14 @@ const ExpenseList: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">
+                    <span className="text-xl sm:text-2xl">
                       {paymentMethodIcons[expense.paymentMethod]}
                     </span>
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
                         {expense.category}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         {format(new Date(expense.date), "MMM dd, yyyy")} •{" "}
                         {expense.paymentMethod
                           ?.replace("-", " ")
@@ -101,16 +101,16 @@ const ExpenseList: React.FC = () => {
                   </div>
 
                   {expense.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 ml-8 sm:ml-11">
                       {expense.description}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="text-right">
                     <p
-                      className={`font-bold text-lg ${getTransactionColor(
+                      className={`font-bold text-base sm:text-lg ${getTransactionColor(
                         expense.transactionType
                       )}`}
                     >
@@ -126,7 +126,7 @@ const ExpenseList: React.FC = () => {
 
                   <button
                     onClick={() => deleteExpense(expense.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                    className="p-1.5 sm:p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
