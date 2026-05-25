@@ -6,11 +6,11 @@ import {
   Home,
   List,
   LogOut,
-  Menu,
+  Moon,
   Plus,
   Settings,
+  Sun,
   UserCog,
-  X,
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ExpenseList from "@/components/ExpenseList";
@@ -19,6 +19,7 @@ import CategoryManager from "@/components/CategoryManager";
 import ProfileManager from "@/components/ProfileManager";
 import ExpenseForm from "@/components/ExpenseForm";
 import { useAuth } from "@/context/AuthContext";
+import { useExpense } from "@/context/ExpenseContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,13 +30,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const navItems = [
+const desktopNavItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
   { id: "transactions", label: "Transactions", icon: List },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "analytics", label: "Insights", icon: BarChart3 },
   { id: "categories", label: "Categories", icon: Settings },
   { id: "profile", label: "Profile", icon: UserCog },
-];
+] as const;
 
 const mobileNavItems = [
   { id: "dashboard", label: "Home", icon: Home },
@@ -43,13 +44,15 @@ const mobileNavItems = [
   { id: "add", label: "Add", icon: Plus },
   { id: "analytics", label: "Insights", icon: BarChart3 },
   { id: "profile", label: "Profile", icon: UserCog },
-];
+] as const;
+
+type AppTab = (typeof desktopNavItems)[number]["id"];
 
 const Navigation: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useExpense();
 
   const initials =
     user?.name
@@ -76,65 +79,25 @@ const Navigation: React.FC = () => {
     }
   };
 
-  const NavButton = ({
-    item,
-    compact = false,
-  }: {
-    item: (typeof navItems)[number];
-    compact?: boolean;
-  }) => {
-    const Icon = item.icon;
-    const isActive = activeTab === item.id;
-
-    return (
-      <Button
-        type="button"
-        variant={isActive ? "secondary" : "ghost"}
-        className={`w-full justify-start ${compact ? "px-3" : ""}`}
-        onClick={() => {
-          setActiveTab(item.id);
-          setIsMobileMenuOpen(false);
-        }}
-      >
-        <Icon />
-        {!compact && <span>{item.label}</span>}
-      </Button>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="fixed left-4 top-4 z-50 lg:hidden">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-lg"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X /> : <Menu />}
-          <span className="sr-only">Toggle navigation</span>
-        </Button>
-      </div>
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg transition-transform duration-300 lg:translate-x-0 ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex h-full flex-col p-5">
-          <div className="space-y-1">
+    <div className="min-h-dvh bg-background">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block">
+        <div className="flex h-full flex-col gap-5 p-5">
+          <div className="flex flex-col gap-2">
             <Badge variant="secondary" className="w-fit">
-              Personal finance
+              Tracker
             </Badge>
-            <h1 className="text-2xl font-semibold text-sidebar-foreground">
-              Expense Tracker
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Fast entries, cleaner decisions.
-            </p>
+            <div>
+              <h1 className="text-2xl font-semibold text-sidebar-foreground">
+                Money Log
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Enter fast. Review calmly.
+              </p>
+            </div>
           </div>
 
-          <Separator className="my-5 bg-sidebar-border" />
+          <Separator className="bg-sidebar-border" />
 
           <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-3">
             <div className="flex items-center gap-3">
@@ -156,49 +119,67 @@ const Navigation: React.FC = () => {
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      onClick={logout}
+                      onClick={toggleTheme}
                     />
                   }
                 >
-                  <LogOut />
-                  <span className="sr-only">Logout</span>
+                  {theme === "light" ? <Moon /> : <Sun />}
+                  <span className="sr-only">Toggle theme</span>
                 </TooltipTrigger>
-                <TooltipContent>Logout</TooltipContent>
+                <TooltipContent>Toggle theme</TooltipContent>
               </Tooltip>
             </div>
           </div>
 
-          <nav className="mt-6 space-y-2">
-            {navItems.map((item) => (
-              <NavButton key={item.id} item={item} />
-            ))}
+          <nav className="flex flex-col gap-1">
+            {desktopNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <Button
+                  key={item.id}
+                  type="button"
+                  variant={isActive ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab(item.id)}
+                >
+                  <Icon data-icon="inline-start" />
+                  <span>{item.label}</span>
+                </Button>
+              );
+            })}
           </nav>
+
+          <div className="mt-auto flex flex-col gap-3">
+            <Button
+              type="button"
+              className="w-full justify-start"
+              onClick={() => setIsExpenseFormOpen(true)}
+            >
+              <Plus data-icon="inline-start" />
+              Add transaction
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              onClick={logout}
+            >
+              <LogOut data-icon="inline-start" />
+              Logout
+            </Button>
+          </div>
         </div>
       </aside>
 
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-xs lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
       <main className="lg:ml-72">
-        <div className="p-4 pt-16 pb-24 sm:p-6 sm:pb-24 lg:p-8">
+        <div className="mx-auto flex max-w-6xl flex-col px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-8 lg:pt-8">
           {renderContent()}
         </div>
       </main>
 
-      <Button
-        type="button"
-        className="fixed bottom-6 right-6 z-40 hidden h-12 rounded-full px-5 shadow-lg lg:inline-flex"
-        onClick={() => setIsExpenseFormOpen(true)}
-      >
-        <Plus />
-        Add
-      </Button>
-
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-2 pb-2 pt-1 shadow-lg backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 shadow-lg backdrop-blur lg:hidden">
         <div className="grid grid-cols-5 gap-1">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -216,11 +197,10 @@ const Navigation: React.FC = () => {
                     setIsExpenseFormOpen(true);
                     return;
                   }
-                  setActiveTab(item.id);
-                  setIsMobileMenuOpen(false);
+                  setActiveTab(item.id as AppTab);
                 }}
               >
-                <Icon className={isAdd ? "size-5" : "size-4"} />
+                <Icon />
                 <span className="truncate">{item.label}</span>
               </Button>
             );

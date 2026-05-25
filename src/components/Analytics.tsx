@@ -1,19 +1,8 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useExpense } from "@/context/ExpenseContext";
+import { BarChart3, LineChart as LineChartIcon } from "lucide-react";
 import {
-  calculateTotals,
-  formatCurrency,
-  getCategoryBreakdown,
-  getMonthlyTrends,
-  getPaymentMethodBreakdown,
-} from "@/utils/expense-utils";
-import { tokenToCssVar } from "@/utils/theme-colors";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
   Cell,
   Legend,
   Line,
@@ -24,17 +13,25 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  CartesianGrid,
 } from "recharts";
-import { DollarSign, TrendingDown, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useExpense } from "@/context/ExpenseContext";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  calculateTotals,
+  formatCurrency,
+  getCategoryBreakdown,
+  getMonthlyTrends,
+} from "@/utils/expense-utils";
+import { tokenToCssVar } from "@/utils/theme-colors";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Separator } from "@/components/ui/separator";
 
 const chartColors = [
   "var(--chart-1)",
@@ -52,7 +49,6 @@ const Analytics: React.FC = () => {
     return {
       ...totals,
       categoryBreakdown: getCategoryBreakdown(expenses),
-      paymentMethodBreakdown: getPaymentMethodBreakdown(expenses),
       monthlyTrends: getMonthlyTrends(expenses),
     };
   }, [expenses]);
@@ -70,44 +66,19 @@ const Analytics: React.FC = () => {
     }
   );
 
-  const paymentMethodData = Object.entries(analytics.paymentMethodBreakdown).map(
-    ([method, amount]) => ({
-      name: method.replace("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
-      value: amount,
-    })
-  );
+  const topCategory = categoryData.reduce<{
+    name: string;
+    value: number;
+  } | null>((top, item) => {
+    if (!top || item.value > top.value) return item;
+    return top;
+  }, null);
 
-  const StatCard = ({
-    title,
-    value,
-    icon: Icon,
-    tone,
-  }: {
-    title: string;
-    value: string;
-    icon: React.ElementType;
-    tone: "primary" | "destructive";
-  }) => (
-    <Card className="shadow">
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
-        <CardAction>
-          <Icon className="size-5 text-muted-foreground" />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <p
-          className={
-            tone === "destructive"
-              ? "text-2xl font-semibold text-destructive"
-              : "text-2xl font-semibold text-primary"
-          }
-        >
-          {value}
-        </p>
-      </CardContent>
-    </Card>
-  );
+  const chartSummary = topCategory
+    ? `Top spending category is ${topCategory.name} at ${formatCurrency(
+        topCategory.value
+      )}. Net balance is ${formatCurrency(analytics.netBalance)}.`
+    : `Net balance is ${formatCurrency(analytics.netBalance)}.`;
 
   const CustomTooltip = ({
     active,
@@ -121,8 +92,10 @@ const Analytics: React.FC = () => {
     if (active && payload?.length) {
       return (
         <Card size="sm" className="bg-popover shadow-md">
-          <CardContent className="py-2">
-            <p className="text-sm font-medium text-popover-foreground">{label}</p>
+          <CardContent className="flex flex-col gap-1 py-2">
+            {label && (
+              <p className="text-sm font-medium text-popover-foreground">{label}</p>
+            )}
             {payload.map((entry, index) => (
               <p key={index} className="text-sm text-muted-foreground">
                 {entry.name}: {formatCurrency(entry.value)}
@@ -136,137 +109,141 @@ const Analytics: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <Badge variant="secondary">Insights</Badge>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-muted-foreground">Insights</p>
         <h2 className="text-3xl font-semibold text-foreground">Analytics</h2>
-        <p className="text-sm text-muted-foreground">
-          See where money comes from, where it goes, and how it changes over time.
-        </p>
-      </div>
+      </header>
 
       {expenses.length === 0 ? (
         <Card className="shadow">
-          <CardHeader>
-            <CardTitle>No Data Available</CardTitle>
-            <CardDescription>Add transactions to unlock analytics.</CardDescription>
-          </CardHeader>
+          <CardContent>
+            <Empty className="border border-dashed border-border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <BarChart3 />
+                </EmptyMedia>
+                <EmptyTitle>No data yet</EmptyTitle>
+                <EmptyDescription>
+                  Add transactions to unlock spending insights.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <StatCard
-              title="Total Expenses"
-              value={formatCurrency(analytics.totalExpenses)}
-              icon={TrendingDown}
-              tone="destructive"
-            />
-            <StatCard
-              title="Total Income"
-              value={formatCurrency(analytics.totalIncome)}
-              icon={TrendingUp}
-              tone="primary"
-            />
-            <StatCard
-              title="Net Balance"
-              value={formatCurrency(analytics.netBalance)}
-              icon={DollarSign}
-              tone={analytics.netBalance >= 0 ? "primary" : "destructive"}
-            />
-          </div>
+          <Card className="shadow">
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Spent</p>
+                  <p className="text-xl font-semibold text-destructive">
+                    {formatCurrency(analytics.totalExpenses)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Received</p>
+                  <p className="text-xl font-semibold text-primary">
+                    {formatCurrency(analytics.totalIncome)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Net</p>
+                  <p
+                    className={
+                      analytics.netBalance >= 0
+                        ? "text-xl font-semibold text-primary"
+                        : "text-xl font-semibold text-destructive"
+                    }
+                  >
+                    {formatCurrency(analytics.netBalance)}
+                  </p>
+                </div>
+              </div>
+              <Separator />
+              <p className="text-sm text-muted-foreground">{chartSummary}</p>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <Card className="shadow">
               <CardHeader>
-                <CardTitle>Expenses by Category</CardTitle>
-                <CardDescription>Debit transactions grouped by category.</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 />
+                  Spend by category
+                </CardTitle>
               </CardHeader>
               <CardContent>
+                <p className="sr-only">{chartSummary}</p>
                 {categoryData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={320}>
                     <PieChart>
                       <Pie
                         data={categoryData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) =>
-                          `${name} ${percent ? (percent * 100).toFixed(0) : "0"}%`
-                        }
-                        outerRadius={82}
+                        outerRadius={88}
                         dataKey="value"
+                        nameKey="name"
                       >
                         {categoryData.map((entry, index) => (
                           <Cell key={`category-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                      <Legend />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-                    No expense data available.
-                  </div>
+                  <Empty className="h-80 border border-dashed border-border">
+                    <EmptyHeader>
+                      <EmptyTitle>No expense data</EmptyTitle>
+                      <EmptyDescription>
+                        Income entries are tracked separately from spending.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 )}
               </CardContent>
             </Card>
 
             <Card className="shadow">
               <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>Debit totals by payment method.</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <LineChartIcon />
+                  Cashflow trend
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {paymentMethodData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={paymentMethodData}>
-                      <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                      <XAxis dataKey="name" stroke="var(--muted-foreground)" />
-                      <YAxis stroke="var(--muted-foreground)" />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" fill="var(--chart-2)" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
-                    No payment method data available.
-                  </div>
-                )}
+                <p className="sr-only">{chartSummary}</p>
+                <ResponsiveContainer width="100%" height={320}>
+                  <LineChart data={analytics.monthlyTrends}>
+                    <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="month" stroke="var(--muted-foreground)" />
+                    <YAxis stroke="var(--muted-foreground)" />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="expenses"
+                      stroke="var(--destructive)"
+                      strokeWidth={2}
+                      name="Expenses"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="income"
+                      stroke="var(--primary)"
+                      strokeWidth={2}
+                      name="Income"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
-
-          <Card className="shadow">
-            <CardHeader>
-              <CardTitle>Monthly Trends</CardTitle>
-              <CardDescription>Income and expenses for the last six months.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={380}>
-                <LineChart data={analytics.monthlyTrends}>
-                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="month" stroke="var(--muted-foreground)" />
-                  <YAxis stroke="var(--muted-foreground)" />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="expenses"
-                    stroke="var(--destructive)"
-                    strokeWidth={2}
-                    name="Expenses"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="income"
-                    stroke="var(--primary)"
-                    strokeWidth={2}
-                    name="Income"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
         </>
       )}
     </div>

@@ -300,8 +300,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
           </CardHeader>
           <CardContent>
             {!showResetForm ? (
-              <form className="space-y-4" onSubmit={handleForgotPassword}>
-                <div className="space-y-2">
+              <form className="flex flex-col gap-4" onSubmit={handleForgotPassword}>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="reset-email">Email</Label>
                   <div className="relative">
                     <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -334,11 +334,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                 </Button>
               </form>
             ) : (
-              <form className="space-y-4" onSubmit={handleResetPassword}>
+              <form className="flex flex-col gap-4" onSubmit={handleResetPassword}>
                 <Card size="sm" className="bg-muted/40">
                   <CardContent className="py-3 text-sm">{securityQuestion}</CardContent>
                 </Card>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="security-answer">Security Answer</Label>
                   <Input
                     id="security-answer"
@@ -349,7 +349,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     onChange={handleResetInputChange}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="new-password">New Password</Label>
                   <Input
                     id="new-password"
@@ -361,7 +361,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     onChange={handleResetInputChange}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="confirm-new-password">Confirm New Password</Label>
                   <Input
                     id="confirm-new-password"
@@ -412,9 +412,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             {!isLogin && (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="name">Full Name</Label>
                 <div className="relative">
                   <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -431,7 +431,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -448,7 +448,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="password">Password</Label>
               <PasswordInput
                 id="password"
@@ -462,7 +462,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
 
             {!isLogin && (
               <>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <PasswordInput
                     id="confirmPassword"
@@ -474,7 +474,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label>Security Question</Label>
                   <Select
                     value={formData.securityQuestion}
@@ -498,7 +498,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="securityAnswer">Security Answer</Label>
                   <Input
                     id="securityAnswer"

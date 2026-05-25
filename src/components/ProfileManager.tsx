@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertTriangle, Database, Trash2 } from "lucide-react";
+import { AlertTriangle, Database, Moon, Sun, Trash2 } from "lucide-react";
+import CategoryManager from "@/components/CategoryManager";
 import { useAuth } from "@/context/AuthContext";
 import { useExpense } from "@/context/ExpenseContext";
 import {
@@ -16,21 +17,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 const ProfileManager: React.FC = () => {
   const { user, logout } = useAuth();
-  const { clearData } = useExpense();
+  const { clearData, theme, toggleTheme } = useExpense();
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
@@ -56,7 +51,7 @@ const ProfileManager: React.FC = () => {
 
   const handleDeleteAccount = async () => {
     if (deleteAccountConfirm.toLowerCase() !== "delete") {
-      setError('Please type "delete" to confirm');
+      setError('Please type "delete" to confirm.');
       return;
     }
 
@@ -84,7 +79,7 @@ const ProfileManager: React.FC = () => {
 
   const handleDeleteData = async () => {
     if (deleteDataConfirm.toLowerCase() !== "delete") {
-      setError('Please type "delete" to confirm');
+      setError('Please type "delete" to confirm.');
       return;
     }
 
@@ -112,49 +107,60 @@ const ProfileManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <Badge variant="secondary">Account</Badge>
-        <h1 className="text-3xl font-semibold text-foreground">Profile Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Review your account and manage data ownership.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-muted-foreground">Account</p>
+        <h1 className="text-3xl font-semibold text-foreground">Profile</h1>
+      </header>
 
       <Card className="shadow">
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Your signed-in identity.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-background/50 p-4 text-center sm:flex-row sm:text-left">
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
             <Avatar className="size-16">
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <h2 className="text-xl font-semibold text-foreground">{user?.name}</h2>
+              <h2 className="truncate text-xl font-semibold text-foreground">
+                {user?.name}
+              </h2>
               <p className="break-all text-sm text-muted-foreground">{user?.email}</p>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <Button type="button" variant="outline" onClick={toggleTheme}>
+              {theme === "light" ? (
+                <Moon data-icon="inline-start" />
+              ) : (
+                <Sun data-icon="inline-start" />
+              )}
+              Theme
+            </Button>
+            <Button type="button" variant="outline" onClick={logout}>
+              Logout
+            </Button>
           </div>
         </CardContent>
       </Card>
 
+      <div className="lg:hidden">
+        <CategoryManager />
+      </div>
+
       <Card className="border-destructive shadow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="size-5" />
-            Danger Zone
+            <AlertTriangle />
+            Data controls
           </CardTitle>
-          <CardDescription>These actions permanently change stored data.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h4 className="font-medium text-foreground">Delete All Data</h4>
+              <h4 className="font-medium text-foreground">Delete all data</h4>
               <p className="text-sm text-muted-foreground">
-                Remove expenses, categories, and transaction history while keeping the account.
+                Keep the account and remove transaction history.
               </p>
             </div>
             <Button
@@ -162,16 +168,18 @@ const ProfileManager: React.FC = () => {
               variant="outline"
               onClick={() => setShowDeleteDataModal(true)}
             >
-              <Database />
-              Delete Data
+              <Database data-icon="inline-start" />
+              Delete data
             </Button>
           </div>
 
-          <div className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <Separator />
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h4 className="font-medium text-foreground">Delete Account</h4>
+              <h4 className="font-medium text-foreground">Delete account</h4>
               <p className="text-sm text-muted-foreground">
-                Permanently remove the account and all associated data.
+                Permanently remove the account and everything in it.
               </p>
             </div>
             <Button
@@ -179,8 +187,8 @@ const ProfileManager: React.FC = () => {
               variant="destructive"
               onClick={() => setShowDeleteAccountModal(true)}
             >
-              <Trash2 />
-              Delete Account
+              <Trash2 data-icon="inline-start" />
+              Delete account
             </Button>
           </div>
         </CardContent>
@@ -192,21 +200,23 @@ const ProfileManager: React.FC = () => {
             <AlertDialogMedia>
               <AlertTriangle className="text-destructive" />
             </AlertDialogMedia>
-            <AlertDialogTitle>Delete Account</AlertDialogTitle>
+            <AlertDialogTitle>Delete account</AlertDialogTitle>
             <AlertDialogDescription>
               This action is permanent. Type delete to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="delete-account-confirm">Confirmation</Label>
-            <Input
-              id="delete-account-confirm"
-              value={deleteAccountConfirm}
-              onChange={(event) => setDeleteAccountConfirm(event.target.value)}
-              placeholder="Type delete to confirm"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="delete-account-confirm">Confirmation</FieldLabel>
+              <Input
+                id="delete-account-confirm"
+                value={deleteAccountConfirm}
+                onChange={(event) => setDeleteAccountConfirm(event.target.value)}
+                placeholder="Type delete to confirm"
+              />
+            </Field>
+            {error && <FieldError>{error}</FieldError>}
+          </FieldGroup>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={closeDialogs}>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -214,7 +224,7 @@ const ProfileManager: React.FC = () => {
               disabled={loading || deleteAccountConfirm.toLowerCase() !== "delete"}
               onClick={handleDeleteAccount}
             >
-              {loading ? "Deleting..." : "Delete Account"}
+              {loading ? "Deleting..." : "Delete account"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -226,21 +236,23 @@ const ProfileManager: React.FC = () => {
             <AlertDialogMedia>
               <AlertTriangle className="text-destructive" />
             </AlertDialogMedia>
-            <AlertDialogTitle>Delete All Data</AlertDialogTitle>
+            <AlertDialogTitle>Delete all data</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes expenses, categories, and transaction history. Type delete to confirm.
+              This removes expenses, categories, and history. Type delete to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="delete-data-confirm">Confirmation</Label>
-            <Input
-              id="delete-data-confirm"
-              value={deleteDataConfirm}
-              onChange={(event) => setDeleteDataConfirm(event.target.value)}
-              placeholder="Type delete to confirm"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="delete-data-confirm">Confirmation</FieldLabel>
+              <Input
+                id="delete-data-confirm"
+                value={deleteDataConfirm}
+                onChange={(event) => setDeleteDataConfirm(event.target.value)}
+                placeholder="Type delete to confirm"
+              />
+            </Field>
+            {error && <FieldError>{error}</FieldError>}
+          </FieldGroup>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={closeDialogs}>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -248,7 +260,7 @@ const ProfileManager: React.FC = () => {
               disabled={loading || deleteDataConfirm.toLowerCase() !== "delete"}
               onClick={handleDeleteData}
             >
-              {loading ? "Deleting..." : "Delete Data"}
+              {loading ? "Deleting..." : "Delete data"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
