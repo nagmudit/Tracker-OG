@@ -2,16 +2,15 @@
 
 import React, { useState } from "react";
 import {
+  BarChart3,
   Home,
   List,
-  BarChart3,
-  Settings,
-  Menu,
-  X,
   LogOut,
-  User,
-  UserCog,
+  Menu,
   Plus,
+  Settings,
+  UserCog,
+  X,
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ExpenseList from "@/components/ExpenseList";
@@ -20,6 +19,31 @@ import CategoryManager from "@/components/CategoryManager";
 import ProfileManager from "@/components/ProfileManager";
 import ExpenseForm from "@/components/ExpenseForm";
 import { useAuth } from "@/context/AuthContext";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const navItems = [
+  { id: "dashboard", label: "Dashboard", icon: Home },
+  { id: "transactions", label: "Transactions", icon: List },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "categories", label: "Categories", icon: Settings },
+  { id: "profile", label: "Profile", icon: UserCog },
+];
+
+const mobileNavItems = [
+  { id: "dashboard", label: "Home", icon: Home },
+  { id: "transactions", label: "History", icon: List },
+  { id: "add", label: "Add", icon: Plus },
+  { id: "analytics", label: "Insights", icon: BarChart3 },
+  { id: "profile", label: "Profile", icon: UserCog },
+];
 
 const Navigation: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -27,21 +51,13 @@ const Navigation: React.FC = () => {
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "transactions", label: "Transactions", icon: List },
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "categories", label: "Categories", icon: Settings },
-    { id: "profile", label: "Profile", icon: UserCog },
-  ];
-
-  const mobileNavItems = [
-    { id: "dashboard", label: "Home", icon: Home },
-    { id: "transactions", label: "History", icon: List },
-    { id: "add", label: "Add", icon: Plus },
-    { id: "analytics", label: "Insights", icon: BarChart3 },
-    { id: "profile", label: "Profile", icon: UserCog },
-  ];
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
 
   const renderContent = () => {
     switch (activeTab) {
@@ -60,113 +76,129 @@ const Navigation: React.FC = () => {
     }
   };
 
+  const NavButton = ({
+    item,
+    compact = false,
+  }: {
+    item: (typeof navItems)[number];
+    compact?: boolean;
+  }) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+
+    return (
+      <Button
+        type="button"
+        variant={isActive ? "secondary" : "ghost"}
+        className={`w-full justify-start ${compact ? "px-3" : ""}`}
+        onClick={() => {
+          setActiveTab(item.id);
+          setIsMobileMenuOpen(false);
+        }}
+      >
+        <Icon />
+        {!compact && <span>{item.label}</span>}
+      </Button>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
+    <div className="min-h-screen bg-background">
+      <div className="fixed left-4 top-4 z-50 lg:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-lg"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg"
         >
-          {isMobileMenuOpen ? (
-            <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          ) : (
-            <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-          )}
-        </button>
+          {isMobileMenuOpen ? <X /> : <Menu />}
+          <span className="sr-only">Toggle navigation</span>
+        </Button>
       </div>
 
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 lg:translate-x-0 ${
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-lg transition-transform duration-300 lg:translate-x-0 ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Expense Tracker
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Manage your finances
-              </p>
-            </div>
+        <div className="flex h-full flex-col p-5">
+          <div className="space-y-1">
+            <Badge variant="secondary" className="w-fit">
+              Personal finance
+            </Badge>
+            <h1 className="text-2xl font-semibold text-sidebar-foreground">
+              Expense Tracker
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Fast entries, cleaner decisions.
+            </p>
           </div>
 
-          {/* User Info */}
-          <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <Separator className="my-5 bg-sidebar-border" />
+
+          <div className="rounded-lg border border-sidebar-border bg-sidebar-accent/50 p-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-pink-500 dark:bg-green-500 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <Avatar>
+                <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {user?.name}
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                  {user?.email}
-                </p>
+                <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
               </div>
-              <button
-                onClick={logout}
-                className="p-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={logout}
+                    />
+                  }
+                >
+                  <LogOut />
+                  <span className="sr-only">Logout</span>
+                </TooltipTrigger>
+                <TooltipContent>Logout</TooltipContent>
+              </Tooltip>
             </div>
           </div>
+
+          <nav className="mt-6 space-y-2">
+            {navItems.map((item) => (
+              <NavButton key={item.id} item={item} />
+            ))}
+          </nav>
         </div>
+      </aside>
 
-        <nav className="mt-8">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                  activeTab === item.id
-                    ? "bg-pink-50 dark:bg-green-900 text-pink-600 dark:text-green-400 border-r-2 border-pink-500 dark:border-green-500"
-                    : "text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-xs lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Main content */}
-      <div className="lg:ml-64">
+      <main className="lg:ml-72">
         <div className="p-4 pt-16 pb-24 sm:p-6 sm:pb-24 lg:p-8">
           {renderContent()}
         </div>
-      </div>
+      </main>
 
-      <button
+      <Button
+        type="button"
+        className="fixed bottom-6 right-6 z-40 hidden h-12 rounded-full px-5 shadow-lg lg:inline-flex"
         onClick={() => setIsExpenseFormOpen(true)}
-        className="fixed bottom-6 right-6 z-40 hidden h-14 items-center gap-2 rounded-full bg-pink-500 px-5 font-semibold text-white shadow-lg transition-colors hover:bg-pink-600 dark:bg-green-500 dark:hover:bg-green-600 lg:flex"
       >
-        <Plus className="h-5 w-5" />
+        <Plus />
         Add
-      </button>
+      </Button>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-2 pb-2 pt-1 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-800/95 lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-2 pb-2 pt-1 shadow-lg backdrop-blur lg:hidden">
         <div className="grid grid-cols-5 gap-1">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -174,8 +206,11 @@ const Navigation: React.FC = () => {
             const isActive = activeTab === item.id;
 
             return (
-              <button
+              <Button
                 key={item.id}
+                type="button"
+                variant={isAdd || isActive ? "default" : "ghost"}
+                className="flex min-h-14 flex-col gap-1 rounded-lg px-1 text-xs"
                 onClick={() => {
                   if (isAdd) {
                     setIsExpenseFormOpen(true);
@@ -184,17 +219,10 @@ const Navigation: React.FC = () => {
                   setActiveTab(item.id);
                   setIsMobileMenuOpen(false);
                 }}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-xs font-medium transition-colors ${
-                  isAdd
-                    ? "bg-pink-500 text-white shadow-md dark:bg-green-500"
-                    : isActive
-                    ? "text-pink-600 dark:text-green-400"
-                    : "text-gray-500 dark:text-gray-400"
-                }`}
               >
-                <Icon className={isAdd ? "h-6 w-6" : "h-5 w-5"} />
+                <Icon className={isAdd ? "size-5" : "size-4"} />
                 <span className="truncate">{item.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>

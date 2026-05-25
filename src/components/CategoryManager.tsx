@@ -2,18 +2,38 @@
 
 import React, { useState } from "react";
 import { useExpense } from "@/context/ExpenseContext";
+import { categoryColorTokens, tokenToCssVar } from "@/utils/theme-colors";
 import { Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const CategoryManager: React.FC = () => {
-  const { categories, addCategory, deleteCategory, theme } = useExpense();
+  const { categories, addCategory, deleteCategory } = useExpense();
   const [isOpen, setIsOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({
     name: "",
-    color: "#6B7280",
+    color: "chart-1",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!newCategory.name.trim()) return;
 
     addCategory({
@@ -22,158 +42,113 @@ const CategoryManager: React.FC = () => {
       isDefault: false,
     });
 
-    setNewCategory({ name: "", color: "#6B7280" });
+    setNewCategory({ name: "", color: "chart-1" });
     setIsOpen(false);
   };
 
-  const getButtonColors = () => {
-    return theme === "dark"
-      ? "bg-green-500 hover:bg-green-600"
-      : "bg-pink-500 hover:bg-pink-600";
-  };
-
-  const colorOptions = [
-    "#EF4444",
-    "#F97316",
-    "#F59E0B",
-    "#EAB308",
-    "#84CC16",
-    "#22C55E",
-    "#10B981",
-    "#14B8A6",
-    "#06B6D4",
-    "#0EA5E9",
-    "#3B82F6",
-    "#6366F1",
-    "#8B5CF6",
-    "#A855F7",
-    "#D946EF",
-    "#EC4899",
-    "#F43F5E",
-    "#6B7280",
-  ];
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          Categories
-        </h2>
-        <button
-          onClick={() => setIsOpen(true)}
-          className={`flex items-center gap-2 px-4 py-2 ${getButtonColors()} text-white rounded-lg transition-colors w-full sm:w-auto justify-center sm:justify-start`}
-        >
-          <Plus className="w-4 h-4" />
-          <span className="text-sm sm:text-base">Add Category</span>
-        </button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <Badge variant="secondary">Library</Badge>
+          <h2 className="text-3xl font-semibold text-foreground">Categories</h2>
+          <p className="text-sm text-muted-foreground">
+            Keep entries scannable with theme-based category tokens.
+          </p>
+        </div>
+        <Button type="button" onClick={() => setIsOpen(true)}>
+          <Plus />
+          Add Category
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {categories.map((category) => (
-          <div
-            key={category.id}
-            className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div
-                  className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: category.color }}
+          <Card key={category.id} className="shadow">
+            <CardHeader>
+              <CardTitle className="flex min-w-0 items-center gap-3">
+                <span
+                  className="size-4 shrink-0 rounded-full border border-border"
+                  style={{ backgroundColor: tokenToCssVar(category.color) }}
                 />
-                <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                  {category.name}
-                </span>
-              </div>
+                <span className="truncate">{category.name}</span>
+              </CardTitle>
               {!category.isDefault && (
-                <button
-                  onClick={() => deleteCategory(category.id)}
-                  className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <CardAction>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => deleteCategory(category.id)}
+                  >
+                    <X />
+                    <span className="sr-only">Delete category</span>
+                  </Button>
+                </CardAction>
               )}
-            </div>
-          </div>
+            </CardHeader>
+            <CardContent>
+              <Badge variant={category.isDefault ? "secondary" : "outline"}>
+                {category.isDefault ? "Default" : "Custom"}
+              </Badge>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                Add New Category
-              </h3>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Category</DialogTitle>
+            <DialogDescription>
+              Choose a name and one of the global chart color tokens.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">Category Name</Label>
+              <Input
+                id="category-name"
+                value={newCategory.name}
+                onChange={(event) =>
+                  setNewCategory((prev) => ({ ...prev, name: event.target.value }))
+                }
+                placeholder="Category name"
+                required
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Category Name
-                </label>
-                <input
-                  type="text"
-                  value={newCategory.name}
-                  onChange={(e) =>
-                    setNewCategory((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter category name"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 dark:focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Color
-                </label>
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 sm:gap-3">
-                  {colorOptions.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() =>
-                        setNewCategory((prev) => ({ ...prev, color }))
-                      }
-                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-all ${
-                        newCategory.color === color
-                          ? "border-gray-900 dark:border-white scale-110"
-                          : "border-gray-300 dark:border-gray-600"
-                      }`}
-                      style={{ backgroundColor: color }}
+            <div className="space-y-2">
+              <Label>Color Token</Label>
+              <div className="grid grid-cols-5 gap-2">
+                {categoryColorTokens.map((color) => (
+                  <Button
+                    key={color}
+                    type="button"
+                    variant={newCategory.color === color ? "default" : "outline"}
+                    className="h-12"
+                    onClick={() => setNewCategory((prev) => ({ ...prev, color }))}
+                  >
+                    <span
+                      className="size-5 rounded-full border border-border"
+                      style={{ backgroundColor: tokenToCssVar(color) }}
                     />
-                  ))}
-                </div>
+                    <span className="sr-only">{color}</span>
+                  </Button>
+                ))}
               </div>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="flex-1 px-4 py-2 sm:py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={`flex-1 px-4 py-2 sm:py-3 ${getButtonColors()} text-white rounded-md transition-colors text-sm sm:text-base`}
-                >
-                  Add Category
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Add Category</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

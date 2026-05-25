@@ -1,5 +1,6 @@
 import { Category, Expense } from "@/types/expense";
 import { validateEmail, validatePassword } from "@/lib/auth";
+import { isCategoryColorToken } from "@/utils/theme-colors";
 
 const paymentMethods: Expense["paymentMethod"][] = [
   "cash",
@@ -15,7 +16,6 @@ type ValidationResult<T> =
   | { ok: false; error: string };
 
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
-const colorRegex = /^#[0-9A-Fa-f]{6}$/;
 
 function cleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -175,8 +175,8 @@ export function validateCategoryInput(
   if (!name || name.length > 40) {
     return { ok: false, error: "Category name is required and must be under 40 characters" };
   }
-  if (!colorRegex.test(color)) {
-    return { ok: false, error: "Category color must be a valid hex color" };
+  if (!isCategoryColorToken(color)) {
+    return { ok: false, error: "Category color must be a theme token" };
   }
 
   return { ok: true, value: { name, color } };

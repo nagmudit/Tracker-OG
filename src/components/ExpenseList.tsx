@@ -16,6 +16,23 @@ import {
   WalletCards,
 } from "lucide-react";
 import ExpenseForm from "@/components/ExpenseForm";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const paymentMeta: Record<
   Expense["paymentMethod"],
@@ -66,12 +83,6 @@ const ExpenseList: React.FC = () => {
     });
   }, [category, endDate, expenses, filter, paymentMethod, search, sortBy, startDate]);
 
-  const getTransactionColor = (type: "credit" | "debit") => {
-    return type === "credit"
-      ? "text-green-600 dark:text-green-400"
-      : "text-red-600 dark:text-red-400";
-  };
-
   const clearFilters = () => {
     setSearch("");
     setFilter("all");
@@ -84,109 +95,121 @@ const ExpenseList: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
-          Transactions
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="space-y-1">
+        <Badge variant="secondary">Ledger</Badge>
+        <h2 className="text-3xl font-semibold text-foreground">Transactions</h2>
+        <p className="text-sm text-muted-foreground">
           Search, filter, edit, or remove entries.
         </p>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search category, note, or payment"
-            className="h-11 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          />
-        </div>
+      <Card className="shadow">
+        <CardContent className="space-y-3 py-4">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search category, note, or payment"
+              className="pl-9"
+            />
+          </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <select
-            value={filter}
-            onChange={(event) =>
-              setFilter(event.target.value as "all" | "debit" | "credit")
-            }
-            className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          >
-            <option value="all">All types</option>
-            <option value="debit">Expenses</option>
-            <option value="credit">Income</option>
-          </select>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <Select
+              value={filter}
+              onValueChange={(value) =>
+                setFilter(value as "all" | "debit" | "credit")
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="debit">Expenses</SelectItem>
+                <SelectItem value="credit">Income</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          >
-            <option value="all">All categories</option>
-            {categories.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+            <Select
+              value={category}
+              onValueChange={(value) => setCategory(value || "all")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((item) => (
+                  <SelectItem key={item.id} value={item.name}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <select
-            value={paymentMethod}
-            onChange={(event) =>
-              setPaymentMethod(event.target.value as "all" | Expense["paymentMethod"])
-            }
-            className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          >
-            <option value="all">All payments</option>
-            {Object.entries(paymentMeta).map(([value, meta]) => (
-              <option key={value} value={value}>
-                {meta.label}
-              </option>
-            ))}
-          </select>
+            <Select
+              value={paymentMethod}
+              onValueChange={(value) =>
+                setPaymentMethod(value as "all" | Expense["paymentMethod"])
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All payments</SelectItem>
+                {Object.entries(paymentMeta).map(([value, meta]) => (
+                  <SelectItem key={value} value={value}>
+                    {meta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <select
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value as "date" | "amount")}
-            className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          >
-            <option value="date">Newest first</option>
-            <option value="amount">Highest amount</option>
-          </select>
-        </div>
+            <Select
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as "date" | "amount")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Newest first</SelectItem>
+                <SelectItem value="amount">Highest amount</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className="h-11 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-pink-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-green-500"
-          />
-          <button
-            onClick={clearFilters}
-            className="h-11 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+            />
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+            />
+            <Button type="button" variant="outline" onClick={clearFilters}>
+              Clear
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {sortedExpenses.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white py-12 text-center dark:border-gray-700 dark:bg-gray-800">
-          <Calendar className="mx-auto mb-4 h-14 w-14 text-gray-400" />
-          <p className="font-medium text-gray-700 dark:text-gray-300">
-            No transactions found
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Adjust filters or add your first entry.
-          </p>
-        </div>
+        <Card className="border-dashed shadow">
+          <CardContent className="py-12 text-center">
+            <Calendar className="mx-auto mb-4 size-14 text-muted-foreground" />
+            <p className="font-medium text-foreground">No transactions found</p>
+            <p className="text-sm text-muted-foreground">
+              Adjust filters or add your first entry.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {sortedExpenses.map((expense) => {
@@ -194,68 +217,63 @@ const ExpenseList: React.FC = () => {
             const paymentLabel = paymentMeta[expense.paymentMethod]?.label || "Payment";
 
             return (
-              <div
-                key={expense.id}
-                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
-              >
-                <div className="flex gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                    <PaymentIcon className="h-5 w-5" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
-                          {expense.category}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
-                          {format(new Date(expense.date), "MMM dd, yyyy")} · {paymentLabel}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 sm:justify-end">
-                        <div className="text-left sm:text-right">
-                          <p
-                            className={`text-base font-bold sm:text-lg ${getTransactionColor(
-                              expense.transactionType
-                            )}`}
-                          >
-                            {expense.transactionType === "credit" ? "+" : "-"}
-                            {formatCurrency(expense.amount)}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {expense.transactionType === "credit" ? "Income" : "Expense"}
-                          </p>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            onClick={() => setEditingExpense(expense)}
-                            className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-pink-600 dark:hover:bg-gray-700 dark:hover:text-green-400"
-                            aria-label="Edit transaction"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteExpense(expense.id)}
-                            className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                            aria-label="Delete transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
+              <Card key={expense.id} className="shadow">
+                <CardHeader>
+                  <div className="flex gap-3">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <PaymentIcon className="size-5" />
                     </div>
-
-                    {expense.description && (
-                      <p className="mt-2 break-words text-sm text-gray-600 dark:text-gray-400">
-                        {expense.description}
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="truncate">{expense.category}</CardTitle>
+                      <CardDescription>
+                        {format(new Date(expense.date), "MMM dd, yyyy")} · {paymentLabel}
+                      </CardDescription>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p
+                        className={
+                          expense.transactionType === "credit"
+                            ? "font-semibold text-primary"
+                            : "font-semibold text-destructive"
+                        }
+                      >
+                        {expense.transactionType === "credit" ? "+" : "-"}
+                        {formatCurrency(expense.amount)}
                       </p>
-                    )}
+                      <Badge variant="outline">
+                        {expense.transactionType === "credit" ? "Income" : "Expense"}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardHeader>
+                {(expense.description || true) && (
+                  <CardContent className="flex items-center justify-between gap-3">
+                    <p className="min-w-0 break-words text-sm text-muted-foreground">
+                      {expense.description || "No note"}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setEditingExpense(expense)}
+                      >
+                        <Edit3 />
+                        <span className="sr-only">Edit transaction</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon-sm"
+                        onClick={() => deleteExpense(expense.id)}
+                      >
+                        <Trash2 />
+                        <span className="sr-only">Delete transaction</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
             );
           })}
         </div>

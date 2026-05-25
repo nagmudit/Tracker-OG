@@ -2,14 +2,14 @@ import { Expense, Category } from '@/types/expense';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 export const defaultCategories: Category[] = [
-  { id: '1', name: 'Travel', color: '#3B82F6', isDefault: true },
-  { id: '2', name: 'Grocery', color: '#10B981', isDefault: true },
-  { id: '3', name: 'Food & Dining', color: '#F59E0B', isDefault: true },
-  { id: '4', name: 'Entertainment', color: '#EF4444', isDefault: true },
-  { id: '5', name: 'Shopping', color: '#8B5CF6', isDefault: true },
-  { id: '6', name: 'Bills & Utilities', color: '#06B6D4', isDefault: true },
-  { id: '7', name: 'Healthcare', color: '#EC4899', isDefault: true },
-  { id: '8', name: 'Miscellaneous', color: '#6B7280', isDefault: true },
+  { id: '1', name: 'Travel', color: 'chart-2', isDefault: true },
+  { id: '2', name: 'Grocery', color: 'chart-1', isDefault: true },
+  { id: '3', name: 'Food & Dining', color: 'chart-3', isDefault: true },
+  { id: '4', name: 'Entertainment', color: 'chart-4', isDefault: true },
+  { id: '5', name: 'Shopping', color: 'chart-5', isDefault: true },
+  { id: '6', name: 'Bills & Utilities', color: 'chart-2', isDefault: true },
+  { id: '7', name: 'Healthcare', color: 'chart-4', isDefault: true },
+  { id: '8', name: 'Miscellaneous', color: 'chart-5', isDefault: true },
 ];
 
 export const formatCurrency = (amount: number): string => {

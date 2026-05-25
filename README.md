@@ -1,6 +1,6 @@
 # Expense Tracker
 
-A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind CSS, SQLite, and Recharts. It helps you log income and expenses quickly, manage categories, review transaction history, and understand spending trends.
+A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, SQLite, and Recharts. It helps you log income and expenses quickly, manage categories, review transaction history, and understand spending trends.
 
 ## Features
 
@@ -9,7 +9,7 @@ A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind
 - Quick mobile-first transaction entry with category chips, payment buttons, and Today/Yesterday shortcuts
 - Last-used category and payment method remembered in the browser
 - Transaction search, filtering, sorting, editing, and deletion
-- Custom categories with colors and protected default categories
+- Custom categories with theme-token colors and protected default categories
 - Dashboard totals for expenses, income, and net balance
 - Analytics charts for category breakdown, payment methods, and monthly trends
 - Light and dark themes
@@ -21,6 +21,7 @@ A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind
 - React 19
 - TypeScript
 - Tailwind CSS
+- shadcn/ui local components in `src/components/ui`
 - SQLite via `sqlite` and `sqlite3`
 - JWT auth with `jsonwebtoken`
 - Password hashing with `bcryptjs`
@@ -63,7 +64,7 @@ src/
     api/              API routes for auth, expenses, categories, and debug checks
     layout.tsx        Root layout and metadata
     page.tsx          Auth gate and app entry
-  components/         UI components
+  components/         App screens and shadcn UI primitives
   context/            Auth and expense state providers
   lib/                Database, auth, mapping, and validation helpers
   types/              Shared TypeScript types
@@ -79,6 +80,8 @@ public/
 - `/api/debug/db-check` is available only outside production.
 - Security-question answers are hashed for new accounts; legacy plain answers can still verify so existing local users are not locked out.
 - Default categories are created per user and cannot be deleted from the UI or API.
+- UI color must come from `src/app/globals.css` theme tokens. Do not hardcode hex values or Tailwind palette classes in app screens.
+- Category colors are stored as token names such as `chart-1`, not arbitrary color values.
 
 ## Good Next Features
 

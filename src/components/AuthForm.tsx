@@ -1,10 +1,53 @@
 "use client";
 
 import React, { useState } from "react";
-import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AuthFormProps {
   onLogin: (user: { id: number; email: string; name: string }) => void;
+}
+
+const securityQuestions = [
+  "What was the name of your first pet?",
+  "What is your mother's maiden name?",
+  "What city were you born in?",
+  "What was the name of your first school?",
+  "What is your favorite movie?",
+  "What was the make of your first car?",
+  "What is your favorite book?",
+  "What is your father's middle name?",
+];
+
+function Message({ type, text }: { type: "error" | "success"; text: string }) {
+  return (
+    <Card
+      size="sm"
+      className={
+        type === "error"
+          ? "border-destructive bg-destructive/10 text-destructive"
+          : "border-secondary bg-secondary/30 text-secondary-foreground"
+      }
+    >
+      <CardContent className="py-2 text-sm">{text}</CardContent>
+    </Card>
+  );
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
@@ -34,179 +77,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
     confirmNewPassword: "",
   });
 
-  const securityQuestions = [
-    "What was the name of your first pet?",
-    "What is your mother's maiden name?",
-    "What city were you born in?",
-    "What was the name of your first school?",
-    "What is your favorite movie?",
-    "What was the make of your first car?",
-    "What is your favorite book?",
-    "What is your father's middle name?",
-  ];
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleResetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  const handleResetInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
     setResetData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
-
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      if (isLogin) {
-        // Login logic
-        const response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Login failed");
-        }
-
-        onLogin(data.user);
-        setSuccess("Login successful!");
-      } else {
-        // Signup logic
-        if (formData.password !== formData.confirmPassword) {
-          throw new Error("Passwords do not match");
-        }
-
-        if (!formData.securityQuestion || !formData.securityAnswer.trim()) {
-          throw new Error(
-            "Please select a security question and provide an answer"
-          );
-        }
-
-        const response = await fetch("/api/auth/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            securityQuestion: formData.securityQuestion,
-            securityAnswer: formData.securityAnswer,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Signup failed");
-        }
-
-        onLogin(data.user);
-        setSuccess("Account created successfully!");
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: resetData.email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to retrieve security question");
-      }
-
-      if (!data.securityQuestion) {
-        setSuccess(
-          "If an account exists for that email, password reset details are available."
-        );
-        return;
-      }
-
-      setSecurityQuestion(data.securityQuestion);
-      setShowResetForm(true);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
-
-    if (resetData.newPassword !== resetData.confirmNewPassword) {
-      setError("New passwords do not match");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: resetData.email,
-          securityAnswer: resetData.securityAnswer,
-          newPassword: resetData.newPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to reset password");
-      }
-
-      setSuccess(
-        "Password reset successfully! You can now log in with your new password."
-      );
-      setShowForgotPassword(false);
-      setShowResetForm(false);
-      setResetData({
-        email: "",
-        securityAnswer: "",
-        newPassword: "",
-        confirmNewPassword: "",
-      });
-      setSecurityQuestion("");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const resetForm = () => {
@@ -232,231 +110,320 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
   };
 
   const toggleMode = () => {
-    setIsLogin(!isLogin);
+    setIsLogin((prev) => !prev);
     resetForm();
   };
 
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      if (isLogin) {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Login failed");
+
+        onLogin(data.user);
+        setSuccess("Login successful.");
+      } else {
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error("Passwords do not match");
+        }
+
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            securityQuestion: formData.securityQuestion,
+            securityAnswer: formData.securityAnswer,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Signup failed");
+
+        onLogin(data.user);
+        setSuccess("Account created successfully.");
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetData.email }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to retrieve security question");
+      }
+
+      if (!data.securityQuestion) {
+        setSuccess("If an account exists for that email, reset details are available.");
+        return;
+      }
+
+      setSecurityQuestion(data.securityQuestion);
+      setShowResetForm(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading) return;
+
+    if (resetData.newPassword !== resetData.confirmNewPassword) {
+      setError("New passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resetData.email,
+          securityAnswer: resetData.securityAnswer,
+          newPassword: resetData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to reset password");
+
+      setSuccess("Password reset successfully. You can now sign in.");
+      setShowForgotPassword(false);
+      setShowResetForm(false);
+      setResetData({
+        email: "",
+        securityAnswer: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      setSecurityQuestion("");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const PasswordInput = ({
+    id,
+    name,
+    value,
+    placeholder,
+    show,
+    setShow,
+  }: {
+    id: string;
+    name: string;
+    value: string;
+    placeholder: string;
+    show: boolean;
+    setShow: (show: boolean) => void;
+  }) => (
+    <div className="relative">
+      <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        id={id}
+        name={name}
+        type={show ? "text" : "password"}
+        required
+        className="pl-9 pr-10"
+        placeholder={placeholder}
+        value={value}
+        onChange={handleInputChange}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="absolute right-1 top-1/2 -translate-y-1/2"
+        onClick={() => setShow(!show)}
+      >
+        {show ? <EyeOff /> : <Eye />}
+        <span className="sr-only">Toggle password visibility</span>
+      </Button>
+    </div>
+  );
+
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-6 sm:space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
-              {showResetForm ? "Reset Password" : "Forgot Password"}
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader>
+            <CardTitle>{showResetForm ? "Reset Password" : "Forgot Password"}</CardTitle>
+            <CardDescription>
               {showResetForm
-                ? "Answer your security question to reset your password"
-                : "Enter your email to retrieve your security question"}
-            </p>
-          </div>
-
-          {!showResetForm ? (
-            <form className="mt-8 space-y-6" onSubmit={handleForgotPassword}>
-              <div className="rounded-md shadow-sm -space-y-px">
-                <div>
-                  <label htmlFor="reset-email" className="sr-only">
-                    Email address
-                  </label>
+                ? "Answer your security question to choose a new password."
+                : "Enter your email to retrieve your security question."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!showResetForm ? (
+              <form className="space-y-4" onSubmit={handleForgotPassword}>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
                       id="reset-email"
                       name="email"
                       type="email"
                       required
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
-                      placeholder="Email address"
+                      className="pl-9"
+                      placeholder="you@example.com"
                       value={resetData.email}
                       onChange={handleResetInputChange}
                     />
                   </div>
                 </div>
-              </div>
 
-              {error && (
-                <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-                  <div className="text-sm text-red-700 dark:text-red-400">
-                    {error}
-                  </div>
-                </div>
-              )}
+                {error && <Message type="error" text={error} />}
+                {success && <Message type="success" text={success} />}
 
-              {success && (
-                <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
-                  <div className="text-sm text-green-700 dark:text-green-400">
-                    {success}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 dark:focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Processing..." : "Get Security Question"}
-                </button>
-              </div>
-
-              <div className="text-center">
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
+                  className="w-full"
                   onClick={() => setShowForgotPassword(false)}
-                  className="text-sm text-pink-600 hover:text-pink-500 dark:text-green-400 dark:hover:text-green-300"
                 >
-                  Back to Login
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form className="mt-8 space-y-6" onSubmit={handleResetPassword}>
-              <div className="rounded-md shadow-sm space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Security Question:
-                  </label>
-                  <p className="text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 p-3 rounded-md">
-                    {securityQuestion}
-                  </p>
-                </div>
-
-                <div>
-                  <label htmlFor="security-answer" className="sr-only">
-                    Security Answer
-                  </label>
-                  <input
+                  Back to Sign In
+                </Button>
+              </form>
+            ) : (
+              <form className="space-y-4" onSubmit={handleResetPassword}>
+                <Card size="sm" className="bg-muted/40">
+                  <CardContent className="py-3 text-sm">{securityQuestion}</CardContent>
+                </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="security-answer">Security Answer</Label>
+                  <Input
                     id="security-answer"
                     name="securityAnswer"
-                    type="text"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
                     placeholder="Your answer"
                     value={resetData.securityAnswer}
                     onChange={handleResetInputChange}
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="new-password" className="sr-only">
-                    New Password
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
                     id="new-password"
                     name="newPassword"
                     type="password"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
                     placeholder="New password"
                     value={resetData.newPassword}
                     onChange={handleResetInputChange}
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="confirm-new-password" className="sr-only">
-                    Confirm New Password
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+                  <Input
                     id="confirm-new-password"
                     name="confirmNewPassword"
                     type="password"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
                     placeholder="Confirm new password"
                     value={resetData.confirmNewPassword}
                     onChange={handleResetInputChange}
                   />
                 </div>
-              </div>
 
-              {error && (
-                <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-                  <div className="text-sm text-red-700 dark:text-red-400">
-                    {error}
-                  </div>
-                </div>
-              )}
+                {error && <Message type="error" text={error} />}
+                {success && <Message type="success" text={success} />}
 
-              {success && (
-                <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
-                  <div className="text-sm text-green-700 dark:text-green-400">
-                    {success}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 dark:focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Resetting..." : "Reset Password"}
-                </button>
-              </div>
-
-              <div className="text-center">
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
+                  className="w-full"
                   onClick={() => {
                     setShowResetForm(false);
                     setShowForgotPassword(false);
-                    setResetData({
-                      email: "",
-                      securityAnswer: "",
-                      newPassword: "",
-                      confirmNewPassword: "",
-                    });
                     setSecurityQuestion("");
                   }}
-                  className="text-sm text-pink-600 hover:text-pink-500 dark:text-green-400 dark:hover:text-green-300"
                 >
                   Cancel
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
-            {isLogin ? "Sign in to your account" : "Create your account"}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader>
+          <CardTitle>{isLogin ? "Sign in" : "Create account"}</CardTitle>
+          <CardDescription>
             {isLogin
-              ? "Enter your details to access your expense tracker"
-              : "Set up your account to start tracking expenses"}
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+              ? "Access your expense tracker."
+              : "Set up your account and recovery question."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             {!isLogin && (
-              <div>
-                <label htmlFor="name" className="sr-only">
-                  Full Name
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
+                  <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
                     id="name"
                     name="name"
-                    type="text"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
-                    placeholder="Full Name"
+                    className="pl-9"
+                    placeholder="Your name"
                     value={formData.name}
                     onChange={handleInputChange}
                   />
@@ -464,187 +431,111 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
+                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
                   id="email"
                   name="email"
                   type="email"
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
+                  className="pl-9"
+                  placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleInputChange}
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <PasswordInput
+                id="password"
+                name="password"
+                value={formData.password}
+                placeholder="Password"
+                show={showPassword}
+                setShow={setShowPassword}
+              />
             </div>
 
             {!isLogin && (
               <>
-                <div>
-                  <label htmlFor="confirmPassword" className="sr-only">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      required
-                      className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
-                      placeholder="Confirm Password"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <PasswordInput
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    placeholder="Confirm password"
+                    show={showConfirmPassword}
+                    setShow={setShowConfirmPassword}
+                  />
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="securityQuestion"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Security Question
-                  </label>
-                  <select
-                    id="securityQuestion"
-                    name="securityQuestion"
-                    required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
+                <div className="space-y-2">
+                  <Label>Security Question</Label>
+                  <Select
                     value={formData.securityQuestion}
-                    onChange={handleInputChange}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        securityQuestion: value || "",
+                      }))
+                    }
                   >
-                    <option value="">Select a security question</option>
-                    {securityQuestions.map((question, index) => (
-                      <option key={index} value={question}>
-                        {question}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a security question" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {securityQuestions.map((question) => (
+                        <SelectItem key={question} value={question}>
+                          {question}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <label htmlFor="securityAnswer" className="sr-only">
-                    Security Answer
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="securityAnswer">Security Answer</Label>
+                  <Input
                     id="securityAnswer"
                     name="securityAnswer"
-                    type="text"
                     required
-                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-pink-500 focus:border-pink-500 dark:focus:ring-green-500 dark:focus:border-green-500 focus:z-10 sm:text-sm"
-                    placeholder="Your answer to the security question"
+                    placeholder="Your answer"
                     value={formData.securityAnswer}
                     onChange={handleInputChange}
                   />
                 </div>
               </>
             )}
-          </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <div className="text-sm text-red-700 dark:text-red-400">
-                {error}
-              </div>
-            </div>
-          )}
+            {error && <Message type="error" text={error} />}
+            {success && <Message type="success" text={success} />}
 
-          {success && (
-            <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
-              <div className="text-sm text-green-700 dark:text-green-400">
-                {success}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 dark:bg-green-600 dark:hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 dark:focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
-            </button>
-          </div>
+            </Button>
 
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={toggleMode}
-              className="text-sm text-pink-600 hover:text-pink-500 dark:text-green-400 dark:hover:text-green-300"
-            >
-              {isLogin
-                ? "Don't have an account? Sign Up"
-                : "Already have an account? Sign In"}
-            </button>
-
-            {isLogin && (
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-pink-600 hover:text-pink-500 dark:text-green-400 dark:hover:text-green-300"
-              >
-                Forgot password?
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button type="button" variant="ghost" onClick={toggleMode}>
+                {isLogin ? "Create account" : "Sign in instead"}
+              </Button>
+              {isLogin && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Forgot password?
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

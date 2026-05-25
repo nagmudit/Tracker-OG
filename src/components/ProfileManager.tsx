@@ -1,9 +1,32 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trash2, Database, User, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Database, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useExpense } from "@/context/ExpenseContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const ProfileManager: React.FC = () => {
   const { user, logout } = useAuth();
@@ -14,6 +37,22 @@ const ProfileManager: React.FC = () => {
   const [deleteDataConfirm, setDeleteDataConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
+  const closeDialogs = () => {
+    setShowDeleteAccountModal(false);
+    setShowDeleteDataModal(false);
+    setDeleteAccountConfirm("");
+    setDeleteDataConfirm("");
+    setError("");
+  };
 
   const handleDeleteAccount = async () => {
     if (deleteAccountConfirm.toLowerCase() !== "delete") {
@@ -35,7 +74,6 @@ const ProfileManager: React.FC = () => {
         throw new Error(data.error || "Failed to delete account");
       }
 
-      // Account deleted successfully, log out user
       logout();
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
@@ -64,9 +102,8 @@ const ProfileManager: React.FC = () => {
         throw new Error(data.error || "Failed to delete data");
       }
 
-      setShowDeleteDataModal(false);
-      setDeleteDataConfirm("");
       clearData();
+      closeDialogs();
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -75,196 +112,147 @@ const ProfileManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
-          Profile Settings
-        </h1>
-
-        {/* User Info */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="w-16 h-16 bg-pink-500 dark:bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-8 h-8 text-white" />
-            </div>
-            <div className="text-center sm:text-left flex-1">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                {user?.name}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 break-all">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="border-t pt-4 sm:pt-6">
-          <h3 className="text-base sm:text-lg font-semibold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
-            Danger Zone
-          </h3>
-          <div className="space-y-4">
-            {/* Delete Data Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-red-200 dark:border-red-800 rounded-lg gap-4">
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                  Delete All Data
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Remove all your expenses, categories, and transaction history.
-                  Your account will remain active.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDeleteDataModal(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-700 dark:text-red-300 rounded-md transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <Database className="w-4 h-4" />
-                Delete Data
-              </button>
-            </div>
-
-            {/* Delete Account Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-red-200 dark:border-red-800 rounded-lg gap-4">
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">
-                  Delete Account
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Permanently delete your account and all associated data. This
-                  action cannot be undone.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDeleteAccountModal(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Account
-              </button>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <Badge variant="secondary">Account</Badge>
+        <h1 className="text-3xl font-semibold text-foreground">Profile Settings</h1>
+        <p className="text-sm text-muted-foreground">
+          Review your account and manage data ownership.
+        </p>
       </div>
 
-      {/* Delete Account Modal */}
-      {showDeleteAccountModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Delete Account
-            </h3>
-            <div className="mb-4">
-              <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg mb-4">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 dark:text-red-400">
-                  This action is permanent and cannot be undone. All your data
-                  will be lost.
-                </p>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                To confirm, type <strong>&quot;delete&quot;</strong> in the box
-                below:
-              </p>
-              <input
-                type="text"
-                value={deleteAccountConfirm}
-                onChange={(e) => setDeleteAccountConfirm(e.target.value)}
-                placeholder="Type 'delete' to confirm"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
-              />
-            </div>
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-sm text-red-700 dark:text-red-400">
-                  {error}
-                </p>
-              </div>
-            )}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteAccountModal(false);
-                  setDeleteAccountConfirm("");
-                  setError("");
-                }}
-                className="w-full sm:flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={
-                  loading || deleteAccountConfirm.toLowerCase() !== "delete"
-                }
-                className="w-full sm:flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-md transition-colors disabled:cursor-not-allowed text-sm sm:text-base"
-              >
-                {loading ? "Deleting..." : "Delete Account"}
-              </button>
+      <Card className="shadow">
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+          <CardDescription>Your signed-in identity.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-background/50 p-4 text-center sm:flex-row sm:text-left">
+            <Avatar className="size-16">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold text-foreground">{user?.name}</h2>
+              <p className="break-all text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* Delete Data Modal */}
-      {showDeleteDataModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Delete All Data
-            </h3>
-            <div className="mb-4">
-              <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg mb-4">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 dark:text-red-400">
-                  This will permanently delete all your expenses, categories,
-                  and transaction history.
-                </p>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                To confirm, type <strong>&quot;delete&quot;</strong> in the box
-                below:
+      <Card className="border-destructive shadow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="size-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription>These actions permanently change stored data.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h4 className="font-medium text-foreground">Delete All Data</h4>
+              <p className="text-sm text-muted-foreground">
+                Remove expenses, categories, and transaction history while keeping the account.
               </p>
-              <input
-                type="text"
-                value={deleteDataConfirm}
-                onChange={(e) => setDeleteDataConfirm(e.target.value)}
-                placeholder="Type 'delete' to confirm"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base"
-              />
             </div>
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-sm text-red-700 dark:text-red-400">
-                  {error}
-                </p>
-              </div>
-            )}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteDataModal(false);
-                  setDeleteDataConfirm("");
-                  setError("");
-                }}
-                className="w-full sm:flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm sm:text-base"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteData}
-                disabled={
-                  loading || deleteDataConfirm.toLowerCase() !== "delete"
-                }
-                className="w-full sm:flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-md transition-colors disabled:cursor-not-allowed text-sm sm:text-base"
-              >
-                {loading ? "Deleting..." : "Delete Data"}
-              </button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteDataModal(true)}
+            >
+              <Database />
+              Delete Data
+            </Button>
           </div>
-        </div>
-      )}
+
+          <div className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h4 className="font-medium text-foreground">Delete Account</h4>
+              <p className="text-sm text-muted-foreground">
+                Permanently remove the account and all associated data.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setShowDeleteAccountModal(true)}
+            >
+              <Trash2 />
+              Delete Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteAccountModal} onOpenChange={setShowDeleteAccountModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <AlertTriangle className="text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Delete Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action is permanent. Type delete to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-account-confirm">Confirmation</Label>
+            <Input
+              id="delete-account-confirm"
+              value={deleteAccountConfirm}
+              onChange={(event) => setDeleteAccountConfirm(event.target.value)}
+              placeholder="Type delete to confirm"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDialogs}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={loading || deleteAccountConfirm.toLowerCase() !== "delete"}
+              onClick={handleDeleteAccount}
+            >
+              {loading ? "Deleting..." : "Delete Account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDataModal} onOpenChange={setShowDeleteDataModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <AlertTriangle className="text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Delete All Data</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes expenses, categories, and transaction history. Type delete to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-data-confirm">Confirmation</Label>
+            <Input
+              id="delete-data-confirm"
+              value={deleteDataConfirm}
+              onChange={(event) => setDeleteDataConfirm(event.target.value)}
+              placeholder="Type delete to confirm"
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDialogs}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={loading || deleteDataConfirm.toLowerCase() !== "delete"}
+              onClick={handleDeleteData}
+            >
+              {loading ? "Deleting..." : "Delete Data"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

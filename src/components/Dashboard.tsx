@@ -2,8 +2,25 @@
 
 import React, { useState } from "react";
 import { useExpense } from "@/context/ExpenseContext";
-import { formatCurrency, calculateTotals } from "@/utils/expense-utils";
-import { TrendingUp, TrendingDown, DollarSign, Sun, Moon } from "lucide-react";
+import { calculateTotals, formatCurrency } from "@/utils/expense-utils";
+import { DollarSign, Moon, Sun, TrendingDown, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Dashboard: React.FC = () => {
   const { expenses, theme, toggleTheme } = useExpense();
@@ -30,167 +47,153 @@ const Dashboard: React.FC = () => {
   };
 
   const filteredExpenses = getFilteredExpenses();
-  const filteredTotals = calculateTotals(filteredExpenses);
+  const totals = calculateTotals(filteredExpenses);
+  const recentTransactions = filteredExpenses.slice(0, 5);
 
   const StatCard = ({
     title,
     value,
     icon: Icon,
-    color,
-    change,
+    tone,
+    detail,
   }: {
     title: string;
     value: string;
     icon: React.ElementType;
-    color: string;
-    change?: string;
+    tone: "primary" | "destructive" | "secondary";
+    detail?: string;
   }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            {title}
-          </p>
-          <p className={`text-xl sm:text-2xl font-bold ${color}`}>{value}</p>
-          {change && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {change}
-            </p>
-          )}
-        </div>
-        <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
-      </div>
-    </div>
+    <Card className="shadow">
+      <CardHeader>
+        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+        <CardAction>
+          <div className="rounded-md bg-muted p-2">
+            <Icon className="size-5 text-muted-foreground" />
+          </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <p
+          className={
+            tone === "destructive"
+              ? "text-2xl font-semibold text-destructive"
+              : tone === "secondary"
+              ? "text-2xl font-semibold text-secondary-foreground"
+              : "text-2xl font-semibold text-primary"
+          }
+        >
+          {value}
+        </p>
+        {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
+      </CardContent>
+    </Card>
   );
-
-  const recentTransactions = filteredExpenses.slice(0, 5);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Track your expenses and manage your budget
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <Badge variant="secondary">Overview</Badge>
+          <h1 className="text-3xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Track cash flow and spot the latest spending movement.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <select
+        <div className="flex items-center gap-2">
+          <Select
             value={timeFilter}
-            onChange={(e) =>
-              setTimeFilter(e.target.value as "all" | "month" | "week")
+            onValueChange={(value) =>
+              setTimeFilter(value as "all" | "month" | "week")
             }
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 dark:focus:ring-green-500 dark:bg-gray-700 dark:text-white text-sm"
           >
-            <option value="all">All Time</option>
-            <option value="month">Last Month</option>
-            <option value="week">Last Week</option>
-          </select>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="month">Last Month</SelectItem>
+              <SelectItem value="week">Last Week</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          >
-            {theme === "light" ? (
-              <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            ) : (
-              <Sun className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            )}
-          </button>
+          <Button type="button" variant="outline" size="icon-lg" onClick={toggleTheme}>
+            {theme === "light" ? <Moon /> : <Sun />}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           title="Total Expenses"
-          value={formatCurrency(filteredTotals.totalExpenses)}
+          value={formatCurrency(totals.totalExpenses)}
           icon={TrendingDown}
-          color="text-red-600 dark:text-red-400"
-          change={`${
-            filteredExpenses.filter((e) => e.transactionType === "debit").length
-          } transactions`}
+          tone="destructive"
+          detail={`${filteredExpenses.filter((item) => item.transactionType === "debit").length} transactions`}
         />
         <StatCard
           title="Total Income"
-          value={formatCurrency(filteredTotals.totalIncome)}
+          value={formatCurrency(totals.totalIncome)}
           icon={TrendingUp}
-          color="text-green-600 dark:text-green-400"
-          change={`${
-            filteredExpenses.filter((e) => e.transactionType === "credit")
-              .length
-          } transactions`}
+          tone="primary"
+          detail={`${filteredExpenses.filter((item) => item.transactionType === "credit").length} transactions`}
         />
         <StatCard
           title="Net Balance"
-          value={formatCurrency(filteredTotals.netBalance)}
+          value={formatCurrency(totals.netBalance)}
           icon={DollarSign}
-          color={
-            filteredTotals.netBalance >= 0
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
-          }
+          tone={totals.netBalance >= 0 ? "primary" : "destructive"}
         />
       </div>
 
-      {/* Recent Transactions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Recent Transactions
-        </h2>
-
-        {recentTransactions.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">
-              No recent transactions
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {recentTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-pink-100 dark:bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-pink-600 dark:text-green-600 font-semibold text-sm sm:text-base">
+      <Card className="shadow">
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>The latest five entries in the selected period.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentTransactions.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              No recent transactions.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentTransactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/50 p-3"
+                >
+                  <div className="min-w-0 flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground">
                       {transaction.category.charAt(0).toUpperCase()}
-                    </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {transaction.category}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(transaction.date).toLocaleDateString()} ·{" "}
+                        {transaction.paymentMethod.replace("-", " ")}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                      {transaction.category}
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0">
                   <p
-                    className={`font-bold text-sm sm:text-base ${
+                    className={
                       transaction.transactionType === "credit"
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
+                        ? "shrink-0 font-semibold text-primary"
+                        : "shrink-0 font-semibold text-destructive"
+                    }
                   >
                     {transaction.transactionType === "credit" ? "+" : "-"}
                     {formatCurrency(transaction.amount)}
                   </p>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    {transaction.paymentMethod?.replace("-", " ") || "N/A"}
-                  </p>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

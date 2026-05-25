@@ -1,17 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ExpenseProvider } from "@/context/ExpenseContext";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const fontSans = DM_Sans({
   subsets: ["latin"],
+  variable: "--font-sans",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fontSerif = DM_Sans({
   subsets: ["latin"],
+  variable: "--font-serif",
+});
+
+const fontMono = Space_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -90,11 +97,13 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <ExpenseProvider>{children}</ExpenseProvider>
-        </AuthProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <ExpenseProvider>{children}</ExpenseProvider>
+          </AuthProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

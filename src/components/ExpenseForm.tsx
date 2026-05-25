@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useExpense } from "@/context/ExpenseContext";
 import { Expense } from "@/types/expense";
+import { tokenToCssVar } from "@/utils/theme-colors";
 import {
   Banknote,
   CalendarDays,
@@ -11,8 +12,27 @@ import {
   Plus,
   Smartphone,
   WalletCards,
-  X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 
 type FormState = {
   amount: string;
@@ -66,23 +86,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   hideTrigger = false,
   onSaved,
 }) => {
-  const { addExpense, updateExpense, categories, theme } = useExpense();
+  const { addExpense, updateExpense, categories } = useExpense();
   const [internalOpen, setInternalOpen] = useState(false);
   const [error, setError] = useState("");
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : internalOpen;
   const isEditing = Boolean(expense);
-
   const [formData, setFormData] = useState<FormState>(defaultFormState);
-
-  const activeColor =
-    theme === "dark"
-      ? "bg-green-500 border-green-500 text-white"
-      : "bg-pink-500 border-pink-500 text-white";
-  const focusColor =
-    theme === "dark"
-      ? "focus:ring-green-500"
-      : "focus:ring-pink-500";
 
   const setOpen = (nextOpen: boolean) => {
     if (isControlled) {
@@ -169,218 +179,176 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   return (
     <>
       {!hideTrigger && (
-        <button
+        <Button
+          type="button"
+          className="fixed bottom-20 right-4 z-40 size-14 rounded-full shadow-lg sm:bottom-6 sm:right-6 lg:bottom-6"
           onClick={() => setOpen(true)}
-          className={`fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-colors sm:bottom-6 sm:right-6 lg:bottom-6 ${
-            theme === "dark"
-              ? "bg-green-500 hover:bg-green-600"
-              : "bg-pink-500 hover:bg-pink-600"
-          }`}
-          aria-label="Add transaction"
         >
-          <Plus className="h-6 w-6" />
-        </button>
+          <Plus />
+          <span className="sr-only">Add transaction</span>
+        </Button>
       )}
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/50 sm:items-center sm:justify-center sm:p-4">
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-gray-800 sm:max-w-lg sm:rounded-lg sm:p-6">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {isEditing ? "Edit Transaction" : "Quick Add"}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {isEditing ? "Update the saved entry" : "Log it before you forget it"}
-                </p>
-              </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                aria-label="Close transaction form"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      <Sheet open={isOpen} onOpenChange={setOpen}>
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-h-[92vh] max-w-2xl overflow-y-auto rounded-t-xl border-border"
+        >
+          <SheetHeader>
+            <SheetTitle>{isEditing ? "Edit Transaction" : "Quick Add"}</SheetTitle>
+            <SheetDescription>
+              {isEditing ? "Update the saved entry." : "Log it before it slips away."}
+            </SheetDescription>
+          </SheetHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-5 px-4">
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+              {(["debit", "credit"] as const).map((type) => (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={formData.transactionType === type ? "default" : "ghost"}
+                  onClick={() => updateField("transactionType", type)}
+                >
+                  {type === "debit" ? "Expense" : "Income"}
+                </Button>
+              ))}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
-                {(["debit", "credit"] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => updateField("transactionType", type)}
-                    className={`h-11 rounded-md text-sm font-semibold transition-colors ${
-                      formData.transactionType === type
-                        ? activeColor
-                        : "text-gray-700 hover:bg-white dark:text-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {type === "debit" ? "Expense" : "Income"}
-                  </button>
-                ))}
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Amount
-                </label>
-                <div className="relative">
-                  <IndianRupee className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(event) => updateField("amount", event.target.value)}
-                    placeholder="0"
-                    className={`h-14 w-full rounded-lg border border-gray-300 bg-white px-4 pl-10 text-2xl font-semibold text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Category
-                </label>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {categoryOptions.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => updateField("category", category.name)}
-                      className={`flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors ${
-                        formData.category === category.name
-                          ? activeColor
-                          : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: category.color }}
-                      />
-                      {category.name}
-                    </button>
-                  ))}
-                </div>
-                <select
-                  value={formData.category}
-                  onChange={(event) => updateField("category", event.target.value)}
-                  className={`mt-3 h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
-                >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Payment
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {paymentMethods.map((method) => {
-                    const Icon = method.icon;
-                    return (
-                      <button
-                        key={method.value}
-                        type="button"
-                        onClick={() => updateField("paymentMethod", method.value)}
-                        className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border px-2 text-xs font-medium transition-colors ${
-                          formData.paymentMethod === method.value
-                            ? activeColor
-                            : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                        {method.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Date
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: "Today", value: today() },
-                    { label: "Yesterday", value: yesterday() },
-                  ].map((option) => (
-                    <button
-                      key={option.label}
-                      type="button"
-                      onClick={() => updateField("date", option.value)}
-                      className={`h-11 rounded-lg border text-sm font-medium transition-colors ${
-                        formData.date === option.value
-                          ? activeColor
-                          : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative mt-3">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(event) => updateField("date", event.target.value)}
-                    className={`h-11 w-full rounded-lg border border-gray-300 bg-white px-3 pl-9 text-sm text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Note
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(event) => updateField("description", event.target.value)}
-                  placeholder="Optional"
-                  rows={2}
-                  className={`w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <div className="relative">
+                <IndianRupee className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="amount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(event) => updateField("amount", event.target.value)}
+                  placeholder="0"
+                  className="h-14 pl-10 text-2xl font-semibold"
+                  autoFocus
                 />
               </div>
+            </div>
 
-              {error && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex gap-3 pb-2 sm:pb-0">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="h-12 flex-1 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={`h-12 flex-1 rounded-lg px-4 text-sm font-semibold text-white transition-colors ${
-                    theme === "dark"
-                      ? "bg-green-500 hover:bg-green-600"
-                      : "bg-pink-500 hover:bg-pink-600"
-                  }`}
-                >
-                  {isEditing ? "Save Changes" : "Add Transaction"}
-                </button>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {categoryOptions.map((category) => (
+                  <Button
+                    key={category.id}
+                    type="button"
+                    variant={formData.category === category.name ? "default" : "outline"}
+                    className="shrink-0 rounded-full"
+                    onClick={() => updateField("category", category.name)}
+                  >
+                    <span
+                      className="size-2.5 rounded-full border border-border"
+                      style={{ backgroundColor: tokenToCssVar(category.color) }}
+                    />
+                    {category.name}
+                  </Button>
+                ))}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <Select
+                value={formData.category}
+                onValueChange={(value) => updateField("category", value || "")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {paymentMethods.map((method) => {
+                  const Icon = method.icon;
+                  return (
+                    <Button
+                      key={method.value}
+                      type="button"
+                      variant={
+                        formData.paymentMethod === method.value ? "default" : "outline"
+                      }
+                      className="h-16 flex-col gap-1"
+                      onClick={() => updateField("paymentMethod", method.value)}
+                    >
+                      <Icon />
+                      <span className="text-xs">{method.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Today", value: today() },
+                  { label: "Yesterday", value: yesterday() },
+                ].map((option) => (
+                  <Button
+                    key={option.label}
+                    type="button"
+                    variant={formData.date === option.value ? "default" : "outline"}
+                    onClick={() => updateField("date", option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="relative">
+                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(event) => updateField("date", event.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Note</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(event) => updateField("description", event.target.value)}
+                placeholder="Optional"
+                rows={2}
+              />
+            </div>
+
+            {error && (
+              <Card size="sm" className="border-destructive bg-destructive/10 text-destructive">
+                <CardContent className="py-2 text-sm">{error}</CardContent>
+              </Card>
+            )}
+
+            <SheetFooter className="px-0">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {isEditing ? "Save Changes" : "Add Transaction"}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

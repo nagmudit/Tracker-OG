@@ -1,4 +1,5 @@
 import { Category, Expense } from "@/types/expense";
+import { normalizeCategoryColor } from "@/utils/theme-colors";
 
 type ExpenseRow = {
   id: string;
@@ -35,7 +36,7 @@ export function mapCategoryRow(row: CategoryRow): Category {
   return {
     id: row.id,
     name: row.name,
-    color: row.color,
+    color: normalizeCategoryColor(row.color, row.name),
     isDefault: Boolean(row.is_default),
   };
 }
