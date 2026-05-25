@@ -3,6 +3,7 @@ import { initDB, getUserCategories, createCategory, deleteCategory } from '@/lib
 import { getUserFromRequest } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultCategories } from '@/utils/expense-utils';
+import { validateCategoryInput, validateId } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,9 +57,17 @@ export async function POST(request: NextRequest) {
     }
 
     const categoryData = await request.json();
+    const validation = validateCategoryInput(categoryData);
+    if (!validation.ok) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const category = {
       id: uuidv4(),
-      ...categoryData,
+      ...validation.value,
       isDefault: false,
     };
 
@@ -88,14 +97,15 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
-    if (!id) {
+    const idValidation = validateId(id, 'Category ID');
+    if (!idValidation.ok) {
       return NextResponse.json(
-        { error: 'Category ID is required' },
+        { error: idValidation.error },
         { status: 400 }
       );
     }
 
-    await deleteCategory(user.id, id);
+    await deleteCategory(user.id, idValidation.value);
     return NextResponse.json({ message: 'Category deleted successfully' });
   } catch (error) {
     console.error('Delete category error:', error);

@@ -1,34 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initDB, createUser, getUserByEmail } from '@/lib/database';
-import { hashPassword, generateToken, validateEmail, validatePassword } from '@/lib/auth';
+import { hashPassword, generateToken, normalizeSecurityAnswer } from '@/lib/auth';
+import { validateSignupInput } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
     await initDB();
-    const { email, name, password, securityQuestion, securityAnswer } = await request.json();
-
-    // Validate input
-    if (!email || !name || !password || !securityQuestion || !securityAnswer) {
+    const body = await request.json();
+    const validation = validateSignupInput(body);
+    if (!validation.ok) {
       return NextResponse.json(
-        { error: 'Email, name, password, security question, and security answer are required' },
+        { error: validation.error },
         { status: 400 }
       );
     }
 
-    if (!validateEmail(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      return NextResponse.json(
-        { error: passwordValidation.message },
-        { status: 400 }
-      );
-    }
+    const { email, name, password, securityQuestion, securityAnswer } = validation.value;
 
     // Check if user already exists
     const existingUser = await getUserByEmail(email);
@@ -41,7 +28,8 @@ export async function POST(request: NextRequest) {
 
     // Hash password and create user
     const hashedPassword = await hashPassword(password);
-    const userId = await createUser(email, name, hashedPassword, securityQuestion, securityAnswer);
+    const hashedSecurityAnswer = await hashPassword(normalizeSecurityAnswer(securityAnswer));
+    const userId = await createUser(email, name, hashedPassword, securityQuestion, hashedSecurityAnswer);
 
     // Generate token
     const token = generateToken({ id: userId as number, email, name });

@@ -1,0 +1,16 @@
+{
+  "name": "Expense Tracker",
+  "short_name": "Tracker",
+  "description": "Track income, expenses, categories, and spending trends.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ec4899",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("http://localhost:3000"),
   title: "Expense Tracker - Smart Financial Management",
   description:
     "A comprehensive expense tracking application with interactive analytics, category management, and beautiful visualizations. Track your income and expenses with support for multiple payment methods and custom categories.",
@@ -35,24 +36,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
   openGraph: {
     title: "Expense Tracker - Smart Financial Management",
     description:
       "Track your expenses and manage your budget with interactive analytics and beautiful visualizations",
-    url: "https://expense-tracker.app",
+    url: "/",
     siteName: "Expense Tracker",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Expense Tracker Dashboard",
-      },
-    ],
     locale: "en_US",
     type: "website",
   },
@@ -61,7 +52,6 @@ export const metadata: Metadata = {
     title: "Expense Tracker - Smart Financial Management",
     description:
       "Track your expenses and manage your budget with interactive analytics",
-    images: ["/twitter-image.png"],
   },
   robots: {
     index: true,
@@ -73,10 +63,6 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-  verification: {
-    google: "google-site-verification-code",
-    yandex: "yandex-verification-code",
   },
 };
 

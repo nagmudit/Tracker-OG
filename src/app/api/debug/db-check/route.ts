@@ -3,6 +3,13 @@ import { initDB, openDB } from '@/lib/database';
 
 export async function GET() {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Not found' },
+        { status: 404 }
+      );
+    }
+
     await initDB();
     const db = await openDB();
     const tableInfo = await db.all('PRAGMA table_info(users)');

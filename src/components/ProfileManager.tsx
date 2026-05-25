@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import { Trash2, Database, User, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useExpense } from "@/context/ExpenseContext";
 
 const ProfileManager: React.FC = () => {
   const { user, logout } = useAuth();
+  const { clearData } = useExpense();
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
@@ -62,10 +64,9 @@ const ProfileManager: React.FC = () => {
         throw new Error(data.error || "Failed to delete data");
       }
 
-      // Data deleted successfully, close modal
       setShowDeleteDataModal(false);
       setDeleteDataConfirm("");
-      window.location.reload(); // Refresh to show empty state
+      clearData();
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

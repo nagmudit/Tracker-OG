@@ -11,6 +11,7 @@ import {
   LogOut,
   User,
   UserCog,
+  Plus,
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ExpenseList from "@/components/ExpenseList";
@@ -23,6 +24,7 @@ import { useAuth } from "@/context/AuthContext";
 const Navigation: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const { user, logout } = useAuth();
 
   const navItems = [
@@ -30,6 +32,14 @@ const Navigation: React.FC = () => {
     { id: "transactions", label: "Transactions", icon: List },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "categories", label: "Categories", icon: Settings },
+    { id: "profile", label: "Profile", icon: UserCog },
+  ];
+
+  const mobileNavItems = [
+    { id: "dashboard", label: "Home", icon: Home },
+    { id: "transactions", label: "History", icon: List },
+    { id: "add", label: "Add", icon: Plus },
+    { id: "analytics", label: "Insights", icon: BarChart3 },
     { id: "profile", label: "Profile", icon: UserCog },
   ];
 
@@ -143,11 +153,58 @@ const Navigation: React.FC = () => {
 
       {/* Main content */}
       <div className="lg:ml-64">
-        <div className="p-4 sm:p-6 lg:p-8">{renderContent()}</div>
+        <div className="p-4 pt-16 pb-24 sm:p-6 sm:pb-24 lg:p-8">
+          {renderContent()}
+        </div>
       </div>
 
-      {/* Floating Action Button */}
-      <ExpenseForm />
+      <button
+        onClick={() => setIsExpenseFormOpen(true)}
+        className="fixed bottom-6 right-6 z-40 hidden h-14 items-center gap-2 rounded-full bg-pink-500 px-5 font-semibold text-white shadow-lg transition-colors hover:bg-pink-600 dark:bg-green-500 dark:hover:bg-green-600 lg:flex"
+      >
+        <Plus className="h-5 w-5" />
+        Add
+      </button>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-2 pb-2 pt-1 shadow-lg backdrop-blur dark:border-gray-700 dark:bg-gray-800/95 lg:hidden">
+        <div className="grid grid-cols-5 gap-1">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isAdd = item.id === "add";
+            const isActive = activeTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (isAdd) {
+                    setIsExpenseFormOpen(true);
+                    return;
+                  }
+                  setActiveTab(item.id);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-xs font-medium transition-colors ${
+                  isAdd
+                    ? "bg-pink-500 text-white shadow-md dark:bg-green-500"
+                    : isActive
+                    ? "text-pink-600 dark:text-green-400"
+                    : "text-gray-500 dark:text-gray-400"
+                }`}
+              >
+                <Icon className={isAdd ? "h-6 w-6" : "h-5 w-5"} />
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <ExpenseForm
+        open={isExpenseFormOpen}
+        onOpenChange={setIsExpenseFormOpen}
+        hideTrigger
+      />
     </div>
   );
 };

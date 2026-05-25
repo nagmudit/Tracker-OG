@@ -1,118 +1,276 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useExpense } from "@/context/ExpenseContext";
-import { Plus, X } from "lucide-react";
+import { Expense } from "@/types/expense";
+import {
+  Banknote,
+  CalendarDays,
+  CreditCard,
+  IndianRupee,
+  Plus,
+  Smartphone,
+  WalletCards,
+  X,
+} from "lucide-react";
 
-const ExpenseForm: React.FC = () => {
-  const { addExpense, categories, theme } = useExpense();
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    amount: "",
-    category: "",
-    paymentMethod: "cash" as const,
-    transactionType: "debit" as const,
-    description: "",
-    date: new Date().toISOString().split("T")[0],
-  });
+type FormState = {
+  amount: string;
+  category: string;
+  paymentMethod: Expense["paymentMethod"];
+  transactionType: Expense["transactionType"];
+  description: string;
+  date: string;
+};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.amount || !formData.category) return;
+interface ExpenseFormProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  expense?: Expense | null;
+  hideTrigger?: boolean;
+  onSaved?: () => void;
+}
 
-    addExpense({
-      amount: parseFloat(formData.amount),
+const today = () => new Date().toISOString().split("T")[0];
+
+const yesterday = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().split("T")[0];
+};
+
+const defaultFormState = (): FormState => ({
+  amount: "",
+  category: "",
+  paymentMethod: "cash",
+  transactionType: "debit",
+  description: "",
+  date: today(),
+});
+
+const paymentMethods: Array<{
+  value: Expense["paymentMethod"];
+  label: string;
+  icon: React.ElementType;
+}> = [
+  { value: "cash", label: "Cash", icon: Banknote },
+  { value: "upi", label: "UPI", icon: Smartphone },
+  { value: "credit-card", label: "Credit", icon: CreditCard },
+  { value: "debit-card", label: "Debit", icon: WalletCards },
+];
+
+const ExpenseForm: React.FC<ExpenseFormProps> = ({
+  open,
+  onOpenChange,
+  expense,
+  hideTrigger = false,
+  onSaved,
+}) => {
+  const { addExpense, updateExpense, categories, theme } = useExpense();
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [error, setError] = useState("");
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalOpen;
+  const isEditing = Boolean(expense);
+
+  const [formData, setFormData] = useState<FormState>(defaultFormState);
+
+  const activeColor =
+    theme === "dark"
+      ? "bg-green-500 border-green-500 text-white"
+      : "bg-pink-500 border-pink-500 text-white";
+  const focusColor =
+    theme === "dark"
+      ? "focus:ring-green-500"
+      : "focus:ring-pink-500";
+
+  const setOpen = (nextOpen: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(nextOpen);
+    } else {
+      setInternalOpen(nextOpen);
+    }
+  };
+
+  const categoryOptions = useMemo(() => categories.slice(0, 10), [categories]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (expense) {
+      setFormData({
+        amount: String(expense.amount),
+        category: expense.category,
+        paymentMethod: expense.paymentMethod,
+        transactionType: expense.transactionType,
+        description: expense.description || "",
+        date: expense.date,
+      });
+      setError("");
+      return;
+    }
+
+    const lastCategory = localStorage.getItem("last-category") || "";
+    const lastPayment =
+      (localStorage.getItem("last-payment-method") as Expense["paymentMethod"]) ||
+      "cash";
+
+    setFormData({
+      ...defaultFormState(),
+      category: categories.some((category) => category.name === lastCategory)
+        ? lastCategory
+        : "",
+      paymentMethod: paymentMethods.some((method) => method.value === lastPayment)
+        ? lastPayment
+        : "cash",
+    });
+    setError("");
+  }, [categories, expense, isOpen]);
+
+  const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const amount = Number.parseFloat(formData.amount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Enter an amount greater than zero.");
+      return;
+    }
+
+    if (!formData.category) {
+      setError("Choose a category.");
+      return;
+    }
+
+    const payload = {
+      amount,
       category: formData.category,
       paymentMethod: formData.paymentMethod,
       transactionType: formData.transactionType,
       description: formData.description,
       date: formData.date,
-    });
+    };
 
-    setFormData({
-      amount: "",
-      category: "",
-      paymentMethod: "cash",
-      transactionType: "debit",
-      description: "",
-      date: new Date().toISOString().split("T")[0],
-    });
-    setIsOpen(false);
-  };
+    if (expense) {
+      await updateExpense(expense.id, payload);
+    } else {
+      await addExpense(payload);
+      localStorage.setItem("last-category", formData.category);
+      localStorage.setItem("last-payment-method", formData.paymentMethod);
+    }
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const getButtonColors = () => {
-    return theme === "dark"
-      ? "bg-green-500 hover:bg-green-600 dark:bg-green-500 dark:hover:bg-green-600"
-      : "bg-pink-500 hover:bg-pink-600 dark:bg-green-500 dark:hover:bg-green-600";
-  };
-
-  const getFocusColors = () => {
-    return theme === "dark"
-      ? "focus:ring-green-500 dark:focus:ring-green-500"
-      : "focus:ring-pink-500 dark:focus:ring-green-500";
+    onSaved?.();
+    setOpen(false);
   };
 
   return (
     <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 ${getButtonColors()} text-white rounded-full w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center shadow-lg transition-colors z-50`}
-      >
-        <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
+      {!hideTrigger && (
+        <button
+          onClick={() => setOpen(true)}
+          className={`fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-colors sm:bottom-6 sm:right-6 lg:bottom-6 ${
+            theme === "dark"
+              ? "bg-green-500 hover:bg-green-600"
+              : "bg-pink-500 hover:bg-pink-600"
+          }`}
+          aria-label="Add transaction"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                Add Transaction
-              </h2>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50 sm:items-center sm:justify-center sm:p-4">
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl dark:bg-gray-800 sm:max-w-lg sm:rounded-lg sm:p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {isEditing ? "Edit Transaction" : "Quick Add"}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {isEditing ? "Update the saved entry" : "Log it before you forget it"}
+                </p>
+              </div>
               <button
-                onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                onClick={() => setOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                aria-label="Close transaction form"
               >
-                <X className="w-6 h-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  placeholder="Enter amount"
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 ${getFocusColors()} dark:bg-gray-700 dark:text-white`}
-                  required
-                />
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+                {(["debit", "credit"] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => updateField("transactionType", type)}
+                    className={`h-11 rounded-md text-sm font-semibold transition-colors ${
+                      formData.transactionType === type
+                        ? activeColor
+                        : "text-gray-700 hover:bg-white dark:text-gray-200 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    {type === "debit" ? "Expense" : "Income"}
+                  </button>
+                ))}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Amount
+                </label>
+                <div className="relative">
+                  <IndianRupee className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(event) => updateField("amount", event.target.value)}
+                    placeholder="0"
+                    className={`h-14 w-full rounded-lg border border-gray-300 bg-white px-4 pl-10 text-2xl font-semibold text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Category
                 </label>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {categoryOptions.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => updateField("category", category.name)}
+                      className={`flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors ${
+                        formData.category === category.name
+                          ? activeColor
+                          : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
                 <select
-                  name="category"
                   value={formData.category}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 ${getFocusColors()} dark:bg-gray-700 dark:text-white`}
-                  required
+                  onChange={(event) => updateField("category", event.target.value)}
+                  className={`mt-3 h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
                 >
-                  <option value="">Select a category</option>
+                  <option value="">Select category</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.name}>
                       {category.name}
@@ -122,77 +280,101 @@ const ExpenseForm: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Payment Method
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Payment
                 </label>
-                <select
-                  name="paymentMethod"
-                  value={formData.paymentMethod}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 ${getFocusColors()} dark:bg-gray-700 dark:text-white`}
-                >
-                  <option value="cash">Cash</option>
-                  <option value="upi">UPI</option>
-                  <option value="credit-card">Credit Card</option>
-                  <option value="debit-card">Debit Card</option>
-                </select>
+                <div className="grid grid-cols-4 gap-2">
+                  {paymentMethods.map((method) => {
+                    const Icon = method.icon;
+                    return (
+                      <button
+                        key={method.value}
+                        type="button"
+                        onClick={() => updateField("paymentMethod", method.value)}
+                        className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border px-2 text-xs font-medium transition-colors ${
+                          formData.paymentMethod === method.value
+                            ? activeColor
+                            : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                        {method.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Transaction Type
-                </label>
-                <select
-                  name="transactionType"
-                  value={formData.transactionType}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 ${getFocusColors()} dark:bg-gray-700 dark:text-white`}
-                >
-                  <option value="debit">Expense</option>
-                  <option value="credit">Income</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Date
                 </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 ${getFocusColors()} dark:bg-gray-700 dark:text-white`}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "Today", value: today() },
+                    { label: "Yesterday", value: yesterday() },
+                  ].map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => updateField("date", option.value)}
+                      className={`h-11 rounded-lg border text-sm font-medium transition-colors ${
+                        formData.date === option.value
+                          ? activeColor
+                          : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative mt-3">
+                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(event) => updateField("date", event.target.value)}
+                    className={`h-11 w-full rounded-lg border border-gray-300 bg-white px-3 pl-9 text-sm text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description (Optional)
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Note
                 </label>
                 <textarea
-                  name="description"
                   value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Enter description"
-                  rows={3}
-                  className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 ${getFocusColors()} dark:bg-gray-700 dark:text-white resize-none`}
+                  onChange={(event) => updateField("description", event.target.value)}
+                  placeholder="Optional"
+                  rows={2}
+                  className={`w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 ${focusColor} dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              {error && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3 pb-2 sm:pb-0">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => setOpen(false)}
+                  className="h-12 flex-1 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`flex-1 px-4 py-2 ${getButtonColors()} text-white rounded-md transition-colors`}
+                  className={`h-12 flex-1 rounded-lg px-4 text-sm font-semibold text-white transition-colors ${
+                    theme === "dark"
+                      ? "bg-green-500 hover:bg-green-600"
+                      : "bg-pink-500 hover:bg-pink-600"
+                  }`}
                 >
-                  Add Transaction
+                  {isEditing ? "Save Changes" : "Add Transaction"}
                 </button>
               </div>
             </form>

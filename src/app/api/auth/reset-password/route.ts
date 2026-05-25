@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySecurityAnswer, updateUserPassword } from '@/lib/database';
-import { hashPassword } from '@/lib/auth';
+import { initDB, verifySecurityAnswer, updateUserPassword } from '@/lib/database';
+import { hashPassword, validateEmail, validatePassword } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    await initDB();
     const { email, securityAnswer, newPassword } = await request.json();
 
     if (!email || !securityAnswer || !newPassword) {
@@ -13,7 +14,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = await verifySecurityAnswer(email, securityAnswer);
+    if (!validateEmail(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return NextResponse.json(
+        { error: passwordValidation.message },
+        { status: 400 }
+      );
+    }
+
+    const userId = await verifySecurityAnswer(email.toLowerCase(), securityAnswer);
     
     if (!userId) {
       return NextResponse.json(

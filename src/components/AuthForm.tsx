@@ -145,6 +145,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
         throw new Error(data.error || "Failed to retrieve security question");
       }
 
+      if (!data.securityQuestion) {
+        setSuccess(
+          "If an account exists for that email, password reset details are available."
+        );
+        return;
+      }
+
       setSecurityQuestion(data.securityQuestion);
       setShowResetForm(true);
     } catch (error) {
@@ -273,6 +280,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                 <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
                   <div className="text-sm text-red-700 dark:text-red-400">
                     {error}
+                  </div>
+                </div>
+              )}
+
+              {success && (
+                <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
+                  <div className="text-sm text-green-700 dark:text-green-400">
+                    {success}
                   </div>
                 </div>
               )}

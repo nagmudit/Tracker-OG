@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initDB, getUserExpenses, createExpense, deleteExpense, updateExpense } from '@/lib/database';
 import { getUserFromRequest } from '@/lib/auth';
+import { validateExpenseInput, validateExpenseUpdates, validateId } from '@/lib/validation';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(request: NextRequest) {
@@ -39,9 +40,17 @@ export async function POST(request: NextRequest) {
     }
 
     const expenseData = await request.json();
+    const validation = validateExpenseInput(expenseData);
+    if (!validation.ok) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const expense = {
       id: uuidv4(),
-      ...expenseData,
+      ...validation.value,
       createdAt: new Date().toISOString(),
     };
 
@@ -69,16 +78,31 @@ export async function PUT(request: NextRequest) {
     }
 
     const { id, ...updates } = await request.json();
-    
-    if (!id) {
+    const idValidation = validateId(id, 'Expense ID');
+    if (!idValidation.ok) {
       return NextResponse.json(
-        { error: 'Expense ID is required' },
+        { error: idValidation.error },
         { status: 400 }
       );
     }
 
-    await updateExpense(user.id, id, updates);
-    return NextResponse.json({ message: 'Expense updated successfully' });
+    const updateValidation = validateExpenseUpdates(updates);
+    if (!updateValidation.ok) {
+      return NextResponse.json(
+        { error: updateValidation.error },
+        { status: 400 }
+      );
+    }
+
+    const expense = await updateExpense(user.id, idValidation.value, updateValidation.value);
+    if (!expense) {
+      return NextResponse.json(
+        { error: 'Expense not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ expense });
   } catch (error) {
     console.error('Update expense error:', error);
     return NextResponse.json(
@@ -103,14 +127,15 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
-    if (!id) {
+    const idValidation = validateId(id, 'Expense ID');
+    if (!idValidation.ok) {
       return NextResponse.json(
-        { error: 'Expense ID is required' },
+        { error: idValidation.error },
         { status: 400 }
       );
     }
 
-    await deleteExpense(user.id, id);
+    await deleteExpense(user.id, idValidation.value);
     return NextResponse.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     console.error('Delete expense error:', error);

@@ -2,14 +2,18 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import { Expense, Category } from '@/types/expense';
+import { mapCategoryRow, mapExpenseRow } from '@/lib/mappers';
+import { normalizeSecurityAnswer, verifyPassword } from '@/lib/auth';
 
 const DB_PATH = path.join(process.cwd(), 'database.sqlite');
 
 export async function openDB() {
-  return open({
+  const db = await open({
     filename: DB_PATH,
     driver: sqlite3.Database,
   });
+  await db.exec('PRAGMA foreign_keys = ON');
+  return db;
 }
 
 export async function initDB() {
@@ -53,7 +57,7 @@ export async function initDB() {
       description TEXT,
       date TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id)
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
   `);
   
@@ -66,7 +70,7 @@ export async function initDB() {
       color TEXT NOT NULL,
       is_default BOOLEAN DEFAULT FALSE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id)
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
   `);
   
@@ -101,17 +105,17 @@ export async function getUserExpenses(userId: number) {
   );
   await db.close();
   
-  // Map database field names to TypeScript interface
-  return expenses.map(expense => ({
-    id: expense.id,
-    amount: expense.amount,
-    category: expense.category,
-    paymentMethod: expense.payment_method,
-    transactionType: expense.transaction_type,
-    description: expense.description,
-    date: expense.date,
-    createdAt: expense.created_at,
-  }));
+  return expenses.map(mapExpenseRow);
+}
+
+export async function getUserExpenseById(userId: number, expenseId: string) {
+  const db = await openDB();
+  const expense = await db.get(
+    'SELECT * FROM expenses WHERE user_id = ? AND id = ?',
+    [userId, expenseId]
+  );
+  await db.close();
+  return expense ? mapExpenseRow(expense) : null;
 }
 
 export async function createExpense(userId: number, expense: Omit<Expense, 'createdAt'>) {
@@ -158,15 +162,20 @@ export async function updateExpense(userId: number, expenseId: string, updates: 
   if (updates.date !== undefined) dbUpdates.date = updates.date;
   
   const fields = Object.keys(dbUpdates);
+  if (fields.length === 0) {
+    await db.close();
+    return getUserExpenseById(userId, expenseId);
+  }
+
   const values = Object.values(dbUpdates);
   const setClause = fields.map(field => `${field} = ?`).join(', ');
   
-  const result = await db.run(
+  await db.run(
     `UPDATE expenses SET ${setClause} WHERE id = ? AND user_id = ?`,
     [...values, expenseId, userId]
   );
   await db.close();
-  return result;
+  return getUserExpenseById(userId, expenseId);
 }
 
 export async function getUserCategories(userId: number) {
@@ -176,7 +185,7 @@ export async function getUserCategories(userId: number) {
     [userId]
   );
   await db.close();
-  return categories;
+  return categories.map(mapCategoryRow);
 }
 
 export async function createCategory(userId: number, category: Omit<Category, 'id'> & { id: string }) {
@@ -216,8 +225,18 @@ export async function verifySecurityAnswer(email: string, answer: string) {
     [email]
   );
   await db.close();
-  
-  if (user && user.security_answer.toLowerCase() === answer.toLowerCase()) {
+
+  if (!user?.security_answer) {
+    return null;
+  }
+
+  const normalizedAnswer = normalizeSecurityAnswer(answer);
+  const storedAnswer = String(user.security_answer);
+  const answerMatches = storedAnswer.startsWith('$2')
+    ? await verifyPassword(normalizedAnswer, storedAnswer)
+    : storedAnswer.toLowerCase() === normalizedAnswer;
+
+  if (answerMatches) {
     return user.id;
   }
   return null;

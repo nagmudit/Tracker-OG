@@ -1,23 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserSecurityQuestion } from '@/lib/database';
+import { getUserSecurityQuestion, initDB } from '@/lib/database';
+import { validateEmail } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    await initDB();
     const { email } = await request.json();
 
-    if (!email) {
+    if (!email || !validateEmail(email)) {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'A valid email is required' },
         { status: 400 }
       );
     }
 
-    const securityQuestion = await getUserSecurityQuestion(email);
+    const securityQuestion = await getUserSecurityQuestion(email.toLowerCase());
     
     if (!securityQuestion) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        {
+          message: 'If this account exists, reset instructions are available.',
+          securityQuestion: null,
+        },
+        { status: 200 }
       );
     }
 

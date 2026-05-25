@@ -208,6 +208,11 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  const clearData = () => {
+    setExpenses([]);
+    setCategories(defaultCategories);
+  };
+
   const value: ExpenseContextType = {
     expenses,
     categories,
@@ -216,6 +221,8 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     updateExpense,
     addCategory,
     deleteCategory,
+    reloadData: loadData,
+    clearData,
     theme,
     toggleTheme,
   };

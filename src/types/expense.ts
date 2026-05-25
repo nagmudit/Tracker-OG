@@ -24,6 +24,8 @@ export interface ExpenseContextType {
   updateExpense: (id: string, expense: Partial<Expense>) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
+  reloadData: () => Promise<void>;
+  clearData: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 }
