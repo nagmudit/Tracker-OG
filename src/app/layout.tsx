@@ -1,29 +1,12 @@
 import type { Metadata } from "next";
-import { DM_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ExpenseProvider } from "@/context/ExpenseContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const fontSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const fontSerif = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-serif",
-});
-
-const fontMono = Space_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "700"],
-});
-
 export const metadata: Metadata = {
   metadataBase: new URL("http://localhost:3000"),
-  title: "Expense Tracker - Smart Financial Management",
+  title: "Money Log - Personal Finance Tracker",
   description:
     "A comprehensive expense tracking application with interactive analytics, category management, and beautiful visualizations. Track your income and expenses with support for multiple payment methods and custom categories.",
   keywords: [
@@ -96,9 +79,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <TooltipProvider>
           <AuthProvider>
             <ExpenseProvider>{children}</ExpenseProvider>

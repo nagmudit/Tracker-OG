@@ -5,6 +5,7 @@ import {
   Banknote,
   CalendarDays,
   CreditCard,
+  Delete,
   IndianRupee,
   Plus,
   Smartphone,
@@ -28,6 +29,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -87,6 +89,8 @@ const paymentMethods: Array<{
   { value: "credit-card", label: "Credit", icon: CreditCard },
   { value: "debit-card", label: "Debit", icon: WalletCards },
 ];
+
+const keypadValues = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0"];
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({
   open,
@@ -186,6 +190,25 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     setOpen(false);
   };
 
+  const appendAmountValue = (value: string) => {
+    setFormData((prev) => {
+      const current = prev.amount;
+      if (value === "." && current.includes(".")) return prev;
+      if (current.includes(".") && current.split(".")[1]?.length >= 2) return prev;
+
+      const nextAmount =
+        current === "0" && value !== "." ? value : `${current}${value}`;
+
+      return { ...prev, amount: nextAmount };
+    });
+    setError("");
+  };
+
+  const removeAmountValue = () => {
+    setFormData((prev) => ({ ...prev, amount: prev.amount.slice(0, -1) }));
+    setError("");
+  };
+
   return (
     <>
       {!hideTrigger && (
@@ -202,61 +225,87 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       <Sheet open={isOpen} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="no-scrollbar mx-auto max-h-[86dvh] max-w-xl gap-0 overflow-y-auto rounded-t-xl border-border"
+          className="no-scrollbar mx-auto max-h-[92dvh] max-w-2xl gap-0 overflow-y-auto rounded-t-3xl border-border"
         >
-          <SheetHeader className="p-4 pb-2">
-            <SheetTitle>{isEditing ? "Edit transaction" : "Quick add"}</SheetTitle>
-            <SheetDescription>
+          <SheetHeader className="items-center px-5 pb-2 pt-4 text-center">
+            <div className="mb-4 h-1.5 w-24 rounded-full bg-border" />
+            <SheetTitle className="w-full text-left text-3xl font-bold">
+              {isEditing ? "Edit Transaction" : "New Transaction"}
+            </SheetTitle>
+            <SheetDescription className="sr-only">
               {isEditing ? "Update the saved entry." : "Amount first, details second."}
             </SheetDescription>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-5">
             <FieldGroup className="gap-4">
               <Field>
-                <FieldLabel>Type</FieldLabel>
+                <FieldLabel className="sr-only">Type</FieldLabel>
                 <ToggleGroup
                   value={[formData.transactionType]}
                   onValueChange={(value) => {
                     const nextValue = value[0] as Expense["transactionType"] | undefined;
                     if (nextValue) updateField("transactionType", nextValue);
                   }}
-                  className="grid w-full grid-cols-2 rounded-lg bg-muted p-1"
+                  className="grid w-full grid-cols-2 rounded-xl bg-muted p-1"
                   spacing={0}
                 >
-                  <ToggleGroupItem value="debit" className="h-9">
+                  <ToggleGroupItem value="debit" className="h-12 text-lg">
                     Expense
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="credit" className="h-9">
+                  <ToggleGroupItem value="credit" className="h-12 text-lg">
                     Income
                   </ToggleGroupItem>
                 </ToggleGroup>
               </Field>
 
-              <Field data-invalid={Boolean(error && !formData.amount)}>
-                <FieldLabel htmlFor="amount">Amount</FieldLabel>
-                <InputGroup className="h-12">
-                  <InputGroupAddon>
-                    <IndianRupee />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    id="amount"
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(event) => updateField("amount", event.target.value)}
-                    placeholder="0"
-                    className="text-xl font-semibold"
-                    aria-invalid={Boolean(error && !formData.amount)}
-                    autoFocus
-                  />
-                </InputGroup>
+              <Field
+                data-invalid={Boolean(error && !formData.amount)}
+                className="items-center gap-3 py-2 text-center"
+              >
+                <FieldLabel htmlFor="amount" className="finance-label text-muted-foreground">
+                  Enter amount
+                </FieldLabel>
+                <div
+                  id="amount"
+                  className={
+                    formData.transactionType === "credit"
+                      ? "finance-amount flex items-center justify-center gap-2 text-5xl font-bold text-success"
+                      : "finance-amount flex items-center justify-center gap-2 text-5xl font-bold text-primary"
+                  }
+                  aria-invalid={Boolean(error && !formData.amount)}
+                >
+                  <IndianRupee />
+                  {formData.amount || "0"}
+                </div>
+                <div className="grid w-full grid-cols-3 gap-3">
+                  {keypadValues.map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant="secondary"
+                      className="h-16 bg-muted text-3xl font-bold text-foreground hover:bg-accent"
+                      onClick={() => appendAmountValue(value)}
+                    >
+                      {value}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-16 bg-muted text-foreground hover:bg-accent"
+                    onClick={removeAmountValue}
+                    aria-label="Remove digit"
+                  >
+                    <Delete />
+                  </Button>
+                </div>
               </Field>
 
               <Field data-invalid={Boolean(error && !formData.category)}>
-                <FieldLabel>Category</FieldLabel>
+                <FieldLabel className="finance-label text-muted-foreground">
+                  Category
+                </FieldLabel>
                 <ToggleGroup
                   value={formData.category ? [formData.category] : []}
                   onValueChange={(value) => {
@@ -270,7 +319,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     <ToggleGroupItem
                         key={category.id}
                         value={category.name}
-                        className="h-8 shrink-0 rounded-full"
+                        className="h-16 shrink-0 flex-col rounded-2xl px-5"
                       >
                       <span
                         className="size-2.5 rounded-full border border-border"
@@ -288,24 +337,28 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>
 
               <Field>
-                <FieldLabel>Payment</FieldLabel>
+                <FieldLabel className="finance-label text-muted-foreground">
+                  Payment method
+                </FieldLabel>
                 <ToggleGroup
                   value={[formData.paymentMethod]}
                   onValueChange={(value) => {
                     const nextValue = value[0] as Expense["paymentMethod"] | undefined;
                     if (nextValue) updateField("paymentMethod", nextValue);
                   }}
-                  className="grid w-full grid-cols-4 gap-2"
+                  className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4"
                   variant="outline"
                 >
                   {paymentMethods.map((method) => {
@@ -314,7 +367,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                       <ToggleGroupItem
                         key={method.value}
                         value={method.value}
-                        className="h-12 flex-col gap-0.5 px-1 text-xs"
+                        className="h-14 gap-2 px-3 text-base"
                       >
                         <Icon />
                         <span>{method.label}</span>
@@ -325,20 +378,22 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               </Field>
 
               <Field>
-                <FieldLabel>Date</FieldLabel>
+                <FieldLabel className="finance-label text-muted-foreground">
+                  Date
+                </FieldLabel>
                 <ToggleGroup
                   value={[formData.date]}
                   onValueChange={(value) => {
                     const nextValue = value[0];
                     if (nextValue) updateField("date", nextValue);
                   }}
-                  className="grid w-full grid-cols-2 gap-2"
+                  className="grid w-full grid-cols-2 gap-3"
                   variant="outline"
                 >
-                  <ToggleGroupItem value={today()} className="h-9">
+                  <ToggleGroupItem value={today()} className="h-11">
                     Today
                   </ToggleGroupItem>
-                  <ToggleGroupItem value={yesterday()} className="h-9">
+                  <ToggleGroupItem value={yesterday()} className="h-11">
                     Yesterday
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -355,7 +410,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="description">Note</FieldLabel>
+                <FieldLabel htmlFor="description" className="finance-label text-muted-foreground">
+                  Note
+                </FieldLabel>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -368,12 +425,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               {error && <FieldError>{error}</FieldError>}
             </FieldGroup>
 
-            <SheetFooter className="sticky bottom-0 -mx-4 border-t border-border bg-popover px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <SheetFooter className="sticky bottom-0 -mx-5 border-t border-border bg-popover px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="grid grid-cols-2 gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" size="lg">
                   {isEditing ? "Save" : "Add"}
                 </Button>
               </div>

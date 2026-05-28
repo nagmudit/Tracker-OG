@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import {
   Banknote,
   Calendar,
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +59,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -131,6 +132,29 @@ const ExpenseList: React.FC = () => {
     sortBy !== "date",
   ].filter(Boolean).length;
 
+  const groupedExpenses = useMemo(() => {
+    return sortedExpenses.reduce<Array<{ label: string; items: Expense[] }>>(
+      (groups, expense) => {
+        const date = new Date(expense.date);
+        const label = isToday(date)
+          ? "Today"
+          : isYesterday(date)
+            ? "Yesterday"
+            : format(date, "MMM dd, yyyy");
+        const lastGroup = groups[groups.length - 1];
+
+        if (lastGroup?.label === label) {
+          lastGroup.items.push(expense);
+        } else {
+          groups.push({ label, items: [expense] });
+        }
+
+        return groups;
+      },
+      []
+    );
+  }, [sortedExpenses]);
+
   const clearFilters = () => {
     setSearch("");
     setFilter("all");
@@ -148,19 +172,21 @@ const ExpenseList: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-muted-foreground">Ledger</p>
-          <h2 className="text-3xl font-semibold text-foreground">Transactions</h2>
+          <h2 className="text-4xl font-bold text-primary sm:text-3xl sm:text-foreground">
+            History
+          </h2>
         </div>
-        <Badge variant="secondary" className="w-fit">
+        <Badge variant="secondary" className="finance-label h-7 w-fit">
           {sortedExpenses.length} shown
         </Badge>
       </header>
 
-      <div className="flex gap-2">
-        <InputGroup className="h-11">
+      <div className="flex flex-col gap-4">
+        <InputGroup className="h-14 border-transparent bg-muted">
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -168,27 +194,42 @@ const ExpenseList: React.FC = () => {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search transactions"
+            className="text-lg"
           />
         </InputGroup>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11"
-          onClick={() => setIsFilterOpen(true)}
-        >
-          <Filter data-icon="inline-start" />
-          Filters
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+          {[
+            { label: "Type", active: filter !== "all" },
+            { label: "Category", active: category !== "all" },
+            { label: "Date", active: Boolean(startDate || endDate) },
+            { label: "Payment", active: paymentMethod !== "all" },
+          ].map((chip) => (
+            <Button
+              key={chip.label}
+              type="button"
+              variant={chip.active ? "default" : "secondary"}
+              className="shrink-0 rounded-full"
+              onClick={() => setIsFilterOpen(true)}
+            >
+              {chip.label === "Type" && <Filter data-icon="inline-start" />}
+              {chip.label}
+            </Button>
+          ))}
           {activeFilterCount > 0 && (
-            <Badge variant="secondary">{activeFilterCount}</Badge>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0 rounded-full"
+              onClick={clearFilters}
+            >
+              Clear {activeFilterCount}
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
 
-      <Card className="shadow">
-        <CardHeader>
-          <CardTitle>History</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card className="app-card overflow-visible bg-transparent py-0 sm:bg-card sm:py-4">
+        <CardContent className="px-0 sm:px-4">
           {sortedExpenses.length === 0 ? (
             <Empty className="border border-dashed border-border">
               <EmptyHeader>
@@ -202,84 +243,95 @@ const ExpenseList: React.FC = () => {
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="flex flex-col divide-y divide-border">
-              {sortedExpenses.map((expense) => {
-                const PaymentIcon =
-                  paymentMeta[expense.paymentMethod]?.icon || WalletCards;
-                const paymentLabel =
-                  paymentMeta[expense.paymentMethod]?.label || "Payment";
+            <div className="flex flex-col gap-6">
+              {groupedExpenses.map((group) => (
+                <section key={group.label} className="flex flex-col gap-3">
+                  <p className="finance-label text-xs text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                    {group.items.map((expense) => {
+                      const PaymentIcon =
+                        paymentMeta[expense.paymentMethod]?.icon || WalletCards;
+                      const paymentLabel =
+                        paymentMeta[expense.paymentMethod]?.label || "Payment";
 
-                return (
-                  <div
-                    key={expense.id}
-                    className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-                  >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                      <PaymentIcon />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-foreground">
-                            {expense.category}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {format(new Date(expense.date), "MMM dd, yyyy")} |{" "}
-                            {paymentLabel}
-                          </p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p
+                      return (
+                        <div key={expense.id} className="flex items-center gap-3 p-4">
+                          <span
                             className={
                               expense.transactionType === "credit"
-                                ? "font-semibold text-primary"
-                                : "font-semibold text-destructive"
+                                ? "flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-success"
+                                : "flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-primary"
                             }
                           >
-                            {expense.transactionType === "credit" ? "+" : "-"}
-                            {formatCurrency(expense.amount)}
-                          </p>
-                          <Badge variant="outline">
-                            {expense.transactionType === "credit"
-                              ? "Income"
-                              : "Expense"}
-                          </Badge>
+                            <PaymentIcon />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-base font-semibold text-foreground">
+                                  {expense.category}
+                                </p>
+                                <p className="truncate text-sm text-muted-foreground">
+                                  {paymentLabel} | {format(new Date(expense.date), "hh:mm a")}
+                                </p>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <p
+                                  className={
+                                    expense.transactionType === "credit"
+                                      ? "finance-amount font-bold text-success"
+                                      : "finance-amount font-bold text-destructive"
+                                  }
+                                >
+                                  {expense.transactionType === "credit" ? "+" : "-"}
+                                  {formatCurrency(expense.amount)}
+                                </p>
+                                <Badge variant="outline" className="finance-label mt-1">
+                                  {expense.transactionType === "credit"
+                                    ? "Credit"
+                                    : "Debit"}
+                                </Badge>
+                              </div>
+                            </div>
+                            {expense.description && (
+                              <p className="mt-1 break-words text-sm text-muted-foreground">
+                                {expense.description}
+                              </p>
+                            )}
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button type="button" variant="ghost" size="icon-sm" />
+                              }
+                            >
+                              <MoreVertical />
+                              <span className="sr-only">Transaction actions</span>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuGroup>
+                                <DropdownMenuItem onClick={() => setEditingExpense(expense)}>
+                                  <Edit3 />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() => setDeletingExpense(expense)}
+                                >
+                                  <Trash2 />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </div>
-                      {expense.description && (
-                        <p className="mt-1 break-words text-sm text-muted-foreground">
-                          {expense.description}
-                        </p>
-                      )}
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button type="button" variant="ghost" size="icon-sm" />
-                        }
-                      >
-                        <MoreVertical />
-                        <span className="sr-only">Transaction actions</span>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem onClick={() => setEditingExpense(expense)}>
-                            <Edit3 />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => setDeletingExpense(expense)}
-                          >
-                            <Trash2 />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </section>
+              ))}
             </div>
           )}
         </CardContent>
@@ -307,9 +359,11 @@ const ExpenseList: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All types</SelectItem>
-                    <SelectItem value="debit">Expenses</SelectItem>
-                    <SelectItem value="credit">Income</SelectItem>
+                    <SelectGroup>
+                      <SelectItem value="all">All types</SelectItem>
+                      <SelectItem value="debit">Expenses</SelectItem>
+                      <SelectItem value="credit">Income</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>
@@ -324,12 +378,14 @@ const ExpenseList: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All categories</SelectItem>
-                    {categories.map((item) => (
-                      <SelectItem key={item.id} value={item.name}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {categories.map((item) => (
+                        <SelectItem key={item.id} value={item.name}>
+                          {item.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>
@@ -346,12 +402,14 @@ const ExpenseList: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All payments</SelectItem>
-                    {Object.entries(paymentMeta).map(([value, meta]) => (
-                      <SelectItem key={value} value={value}>
-                        {meta.label}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      <SelectItem value="all">All payments</SelectItem>
+                      {Object.entries(paymentMeta).map(([value, meta]) => (
+                        <SelectItem key={value} value={value}>
+                          {meta.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>
@@ -366,8 +424,10 @@ const ExpenseList: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date">Newest first</SelectItem>
-                    <SelectItem value="amount">Highest amount</SelectItem>
+                    <SelectGroup>
+                      <SelectItem value="date">Newest first</SelectItem>
+                      <SelectItem value="amount">Highest amount</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>

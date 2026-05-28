@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Eye, EyeOff, Lock, Mail, Moon, Sun, User } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Moon, Sun, User, WalletCards } from "lucide-react";
 import { useExpense } from "@/context/ExpenseContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -103,7 +104,7 @@ function ThemeSwitch() {
       type="button"
       variant="outline"
       size="icon-lg"
-      className="absolute right-4 top-4"
+      className="absolute right-4 top-4 border-transparent bg-card/70 backdrop-blur"
       onClick={toggleTheme}
     >
       {theme === "light" ? <Moon /> : <Sun />}
@@ -310,11 +311,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
 
   if (showForgotPassword) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="relative flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_12%_8%,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_28%),radial-gradient(circle_at_88%_92%,color-mix(in_srgb,var(--secondary)_32%,transparent),transparent_24%),var(--background)] p-4">
         <ThemeSwitch />
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader>
-            <CardTitle>{showResetForm ? "Reset Password" : "Forgot Password"}</CardTitle>
+        <Card className="app-card w-full max-w-md bg-card/90 shadow-xl shadow-primary/10 backdrop-blur">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold">
+              {showResetForm ? "Reset Password" : "Forgot Password"}
+            </CardTitle>
             <CardDescription>
               {showResetForm
                 ? "Answer your security question to choose a new password."
@@ -424,15 +427,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_12%_8%,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_28%),radial-gradient(circle_at_88%_92%,color-mix(in_srgb,var(--secondary)_32%,transparent),transparent_24%),var(--background)] p-4">
       <ThemeSwitch />
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader>
-          <CardTitle>{isLogin ? "Sign in" : "Create account"}</CardTitle>
-          <CardDescription>
+      <Card className="app-card w-full max-w-md bg-card/90 shadow-xl shadow-primary/10 backdrop-blur">
+        <CardHeader className="items-center text-center">
+          <div className="mb-3 flex size-24 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+            <WalletCards />
+          </div>
+          <CardTitle className="text-4xl font-bold text-primary">Money Log</CardTitle>
+          <CardDescription className="finance-label">
             {isLogin
-              ? "Access your expense tracker."
-              : "Set up your account and recovery question."}
+              ? "Tracker"
+              : "Create your recovery-ready account"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -511,17 +517,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                       }))
                     }
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a security question" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a security question" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
                       {securityQuestions.map((question) => (
                         <SelectItem key={question} value={question}>
                           {question}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -541,8 +549,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
             {error && <Message type="error" text={error} />}
             {success && <Message type="success" text={success} />}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
+              {!loading && <ArrowRight data-icon="inline-end" />}
             </Button>
 
             <div className="grid gap-2 sm:grid-cols-2">

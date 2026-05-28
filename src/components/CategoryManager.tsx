@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Edit3, Plus, Search, Trash2 } from "lucide-react";
 import { useExpense } from "@/context/ExpenseContext";
 import { categoryColorTokens, tokenToCssVar } from "@/utils/theme-colors";
 import {
@@ -28,6 +28,11 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Category } from "@/types/expense";
 
@@ -35,6 +40,7 @@ const CategoryManager: React.FC = () => {
   const { categories, addCategory, deleteCategory } = useExpense();
   const [isOpen, setIsOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [search, setSearch] = useState("");
   const [newCategory, setNewCategory] = useState({
     name: "",
     color: "chart-1",
@@ -60,12 +66,18 @@ const CategoryManager: React.FC = () => {
     setDeletingCategory(null);
   };
 
+  const filteredCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-muted-foreground">Library</p>
-          <h2 className="text-3xl font-semibold text-foreground">Categories</h2>
+          <h2 className="text-4xl font-bold text-primary sm:text-3xl sm:text-foreground">
+            Categories
+          </h2>
         </div>
         <Button type="button" onClick={() => setIsOpen(true)}>
           <Plus data-icon="inline-start" />
@@ -73,30 +85,54 @@ const CategoryManager: React.FC = () => {
         </Button>
       </header>
 
-      <Card className="shadow">
-        <CardHeader>
-          <CardTitle>Category tokens</CardTitle>
+      <InputGroup className="h-14 border-transparent bg-muted">
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+        <InputGroupInput
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search categories..."
+          className="text-lg"
+        />
+      </InputGroup>
+
+      <Card className="app-card">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-2xl">Manage Categories</CardTitle>
+          <p className="finance-label text-xs text-muted-foreground">
+            {filteredCategories.length} categories
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col divide-y divide-border">
-            {categories.map((category) => (
+          <div className="flex flex-col gap-3">
+            {filteredCategories.map((category) => (
               <div
                 key={category.id}
-                className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                className="flex items-center gap-4 rounded-lg border border-border bg-card p-4"
               >
-                <span
-                  className="size-4 shrink-0 rounded-full border border-border"
-                  style={{ backgroundColor: tokenToCssVar(category.color) }}
-                />
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted text-primary">
+                  {category.name.charAt(0).toUpperCase()}
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-foreground">
+                  <p className="truncate text-lg font-bold text-foreground">
                     {category.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">{category.color}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {category.isDefault ? "Default spending group" : "Custom category"}
+                  </p>
                 </div>
-                <Badge variant={category.isDefault ? "secondary" : "outline"}>
+                <span
+                  className="size-3 shrink-0 rounded-full border border-border"
+                  style={{ backgroundColor: tokenToCssVar(category.color) }}
+                />
+                <Badge variant={category.isDefault ? "secondary" : "outline"} className="hidden sm:inline-flex">
                   {category.isDefault ? "Default" : "Custom"}
                 </Badge>
+                <Button type="button" variant="ghost" size="icon-sm" disabled>
+                  <Edit3 />
+                  <span className="sr-only">Edit category</span>
+                </Button>
                 {!category.isDefault && (
                   <Button
                     type="button"

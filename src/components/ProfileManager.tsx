@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertTriangle, Database, Moon, Sun, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  ChevronRight,
+  Database,
+  Download,
+  Moon,
+  Palette,
+  Sun,
+  Trash2,
+  UserCircle,
+} from "lucide-react";
 import CategoryManager from "@/components/CategoryManager";
 import { useAuth } from "@/context/AuthContext";
 import { useExpense } from "@/context/ExpenseContext";
@@ -107,92 +118,126 @@ const ProfileManager: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <p className="text-sm font-medium text-muted-foreground">Account</p>
-        <h1 className="text-3xl font-semibold text-foreground">Profile</h1>
+        <h1 className="text-4xl font-bold text-primary sm:text-3xl sm:text-foreground">
+          Money Log
+        </h1>
       </header>
 
-      <Card className="shadow">
-        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <Avatar className="size-16">
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardContent className="flex flex-col items-center gap-4 p-0 text-center">
+          <div className="relative">
+            <Avatar className="size-32 border-4 border-primary">
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
-              <h2 className="truncate text-xl font-semibold text-foreground">
-                {user?.name}
-              </h2>
-              <p className="break-all text-sm text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex">
-            <Button type="button" variant="outline" onClick={toggleTheme}>
-              {theme === "light" ? (
-                <Moon data-icon="inline-start" />
-              ) : (
-                <Sun data-icon="inline-start" />
-              )}
-              Theme
-            </Button>
-            <Button type="button" variant="outline" onClick={logout}>
-              Logout
+            <Button
+              type="button"
+              size="icon"
+              className="absolute bottom-0 right-0 rounded-full"
+              aria-label="Edit profile"
+            >
+              <UserCircle />
             </Button>
           </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-3xl font-bold text-foreground">
+              {user?.name}
+            </h2>
+            <p className="break-all text-lg text-muted-foreground">{user?.email}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="app-card bg-muted/50">
+        <CardHeader>
+          <CardTitle className="finance-label text-sm text-muted-foreground">
+            Security & Identity
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          <button type="button" className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted">
+            <UserCircle className="text-primary" />
+            <span className="flex-1 text-lg font-medium">Account Details</span>
+            <ChevronRight className="text-muted-foreground" />
+          </button>
+          <button type="button" className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted">
+            <Bell className="text-primary" />
+            <span className="flex-1 text-lg font-medium">Notifications</span>
+            <ChevronRight className="text-muted-foreground" />
+          </button>
+        </CardContent>
+      </Card>
+
+      <Card className="app-card bg-muted/50">
+        <CardHeader>
+          <CardTitle className="finance-label text-sm text-muted-foreground">
+            Preferences
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <button
+            type="button"
+            className="flex w-full items-center gap-4 rounded-lg p-3 text-left hover:bg-muted"
+            onClick={toggleTheme}
+          >
+            <Palette className="text-primary" />
+            <span className="flex-1 text-lg font-medium">Dark Mode</span>
+            <span className="flex h-8 w-14 items-center rounded-full bg-border p-1">
+              <span
+                className={
+                  theme === "dark"
+                    ? "ml-6 size-6 rounded-full bg-primary"
+                    : "size-6 rounded-full bg-card"
+                }
+              />
+            </span>
+            {theme === "light" ? <Moon className="sr-only" /> : <Sun className="sr-only" />}
+          </button>
+        </CardContent>
+      </Card>
+
+      <Card className="app-card bg-muted/50">
+        <CardHeader>
+          <CardTitle className="finance-label text-sm text-muted-foreground">
+            Data & Privacy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1">
+          <button type="button" className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted">
+            <Download className="text-primary" />
+            <span className="flex-1 text-lg font-medium">Export Data (CSV/PDF)</span>
+            <Download className="text-muted-foreground" />
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-4 rounded-lg p-3 text-left text-destructive hover:bg-destructive/10"
+            onClick={() => setShowDeleteDataModal(true)}
+          >
+            <Database />
+            <span className="flex-1 text-lg font-medium">Clear All Data</span>
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-4 rounded-lg p-3 text-left text-destructive hover:bg-destructive/10"
+            onClick={() => setShowDeleteAccountModal(true)}
+          >
+            <Trash2 />
+            <span className="flex-1 text-lg font-medium">Delete Account</span>
+          </button>
+          <Separator />
+          <Button type="button" variant="outline" className="mt-3 w-full" onClick={logout}>
+            Logout
+          </Button>
         </CardContent>
       </Card>
 
       <div className="lg:hidden">
         <CategoryManager />
       </div>
-
-      <Card className="border-destructive shadow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <AlertTriangle />
-            Data controls
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h4 className="font-medium text-foreground">Delete all data</h4>
-              <p className="text-sm text-muted-foreground">
-                Keep the account and remove transaction history.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowDeleteDataModal(true)}
-            >
-              <Database data-icon="inline-start" />
-              Delete data
-            </Button>
-          </div>
-
-          <Separator />
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h4 className="font-medium text-foreground">Delete account</h4>
-              <p className="text-sm text-muted-foreground">
-                Permanently remove the account and everything in it.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => setShowDeleteAccountModal(true)}
-            >
-              <Trash2 data-icon="inline-start" />
-              Delete account
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       <AlertDialog open={showDeleteAccountModal} onOpenChange={setShowDeleteAccountModal}>
         <AlertDialogContent>
