@@ -1,128 +1,158 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
+import { Pool, type QueryResultRow } from '@neondatabase/serverless';
 import { Expense, Category } from '@/types/expense';
 import { mapCategoryRow, mapExpenseRow } from '@/lib/mappers';
 import { normalizeSecurityAnswer, verifyPassword } from '@/lib/auth';
 
-const DB_PATH = path.join(process.cwd(), 'database.sqlite');
+type QueryParam = string | number | boolean | null;
+type ExpenseRow = Parameters<typeof mapExpenseRow>[0];
+type CategoryRow = Parameters<typeof mapCategoryRow>[0];
 
-export async function openDB() {
-  const db = await open({
-    filename: DB_PATH,
-    driver: sqlite3.Database,
-  });
-  await db.exec('PRAGMA foreign_keys = ON');
-  return db;
+declare global {
+  var neonPool: Pool | undefined;
 }
 
-export async function initDB() {
-  const db = await openDB();
-  
-  // Create users table with all columns
-  await db.exec(`
+let initPromise: Promise<void> | null = null;
+
+function getPool() {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL must be set to your Neon connection string');
+  }
+
+  if (!globalThis.neonPool) {
+    globalThis.neonPool = new Pool({ connectionString });
+  }
+
+  return globalThis.neonPool;
+}
+
+async function query<T extends QueryResultRow>(sql: string, params: QueryParam[] = []) {
+  return getPool().query<T>(sql, params);
+}
+
+export async function openDB() {
+  const pool = getPool();
+
+  return {
+    all: async <T extends QueryResultRow>(sql: string, params: QueryParam[] = []) => {
+      const result = await pool.query<T>(sql, params);
+      return result.rows;
+    },
+    get: async <T extends QueryResultRow>(sql: string, params: QueryParam[] = []) => {
+      const result = await pool.query<T>(sql, params);
+      return result.rows[0];
+    },
+    run: async (sql: string, params: QueryParam[] = []) => {
+      const result = await pool.query(sql, params);
+      return { changes: result.rowCount ?? 0, lastID: result.rows[0]?.id };
+    },
+    exec: async (sql: string) => {
+      await pool.query(sql);
+    },
+    close: async () => {},
+  };
+}
+
+async function ensureSchema() {
+  await query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       password TEXT NOT NULL,
       security_question TEXT DEFAULT NULL,
       security_answer TEXT DEFAULT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // Check if security columns exist and add them if they don't
-  const tableInfo = await db.all('PRAGMA table_info(users)');
-  const hasSecurityQuestion = tableInfo.some(col => col.name === 'security_question');
-  const hasSecurityAnswer = tableInfo.some(col => col.name === 'security_answer');
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS security_question TEXT DEFAULT NULL');
+  await query('ALTER TABLE users ADD COLUMN IF NOT EXISTS security_answer TEXT DEFAULT NULL');
 
-  if (!hasSecurityQuestion) {
-    await db.exec('ALTER TABLE users ADD COLUMN security_question TEXT DEFAULT NULL');
-  }
-
-  if (!hasSecurityAnswer) {
-    await db.exec('ALTER TABLE users ADD COLUMN security_answer TEXT DEFAULT NULL');
-  }
-  
-  // Create expenses table
-  await db.exec(`
+  await query(`
     CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL,
-      amount REAL NOT NULL,
+      amount DOUBLE PRECISION NOT NULL,
       category TEXT NOT NULL,
       payment_method TEXT NOT NULL,
       transaction_type TEXT NOT NULL,
       description TEXT,
       date TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
   `);
-  
-  // Create categories table
-  await db.exec(`
+
+  await query(`
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL,
       name TEXT NOT NULL,
       color TEXT NOT NULL,
       is_default BOOLEAN DEFAULT FALSE,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
   `);
-  
-  await db.close();
+}
+
+export async function initDB() {
+  if (!initPromise) {
+    initPromise = ensureSchema().catch((error) => {
+      initPromise = null;
+      throw error;
+    });
+  }
+
+  return initPromise;
 }
 
 export async function getUserByEmail(email: string) {
-  const db = await openDB();
-  const user = await db.get(
-    'SELECT * FROM users WHERE email = ?',
+  const result = await query(
+    'SELECT * FROM users WHERE email = $1',
     [email]
   );
-  await db.close();
-  return user;
+  return result.rows[0];
 }
 
 export async function createUser(email: string, name: string, hashedPassword: string, securityQuestion?: string, securityAnswer?: string) {
-  const db = await openDB();
-  const result = await db.run(
-    'INSERT INTO users (email, name, password, security_question, security_answer) VALUES (?, ?, ?, ?, ?)',
+  const result = await query<{ id: number }>(
+    `INSERT INTO users (email, name, password, security_question, security_answer)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
     [email, name, hashedPassword, securityQuestion || null, securityAnswer || null]
   );
-  await db.close();
-  return result.lastID;
+  return result.rows[0].id;
 }
 
 export async function getUserExpenses(userId: number) {
-  const db = await openDB();
-  const expenses = await db.all(
-    'SELECT * FROM expenses WHERE user_id = ? ORDER BY created_at DESC',
+  const result = await query<ExpenseRow>(
+    `SELECT id, amount, category, payment_method, transaction_type, description, date, created_at::text AS created_at
+     FROM expenses
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
     [userId]
   );
-  await db.close();
-  
-  return expenses.map(mapExpenseRow);
+  return result.rows.map(mapExpenseRow);
 }
 
 export async function getUserExpenseById(userId: number, expenseId: string) {
-  const db = await openDB();
-  const expense = await db.get(
-    'SELECT * FROM expenses WHERE user_id = ? AND id = ?',
+  const result = await query<ExpenseRow>(
+    `SELECT id, amount, category, payment_method, transaction_type, description, date, created_at::text AS created_at
+     FROM expenses
+     WHERE user_id = $1 AND id = $2`,
     [userId, expenseId]
   );
-  await db.close();
+  const expense = result.rows[0];
   return expense ? mapExpenseRow(expense) : null;
 }
 
 export async function createExpense(userId: number, expense: Omit<Expense, 'createdAt'>) {
-  const db = await openDB();
-  const result = await db.run(
-    `INSERT INTO expenses (id, user_id, amount, category, payment_method, transaction_type, description, date) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  const result = await query(
+    `INSERT INTO expenses (id, user_id, amount, category, payment_method, transaction_type, description, date)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       expense.id,
       userId,
@@ -130,101 +160,84 @@ export async function createExpense(userId: number, expense: Omit<Expense, 'crea
       expense.category,
       expense.paymentMethod,
       expense.transactionType,
-      expense.description,
+      expense.description || null,
       expense.date,
     ]
   );
-  await db.close();
-  return result;
+  return { changes: result.rowCount ?? 0 };
 }
 
 export async function deleteExpense(userId: number, expenseId: string) {
-  const db = await openDB();
-  const result = await db.run(
-    'DELETE FROM expenses WHERE id = ? AND user_id = ?',
+  const result = await query(
+    'DELETE FROM expenses WHERE id = $1 AND user_id = $2',
     [expenseId, userId]
   );
-  await db.close();
-  return result;
+  return { changes: result.rowCount ?? 0 };
 }
 
 export async function updateExpense(userId: number, expenseId: string, updates: Partial<Expense>) {
-  const db = await openDB();
-  
-  // Map camelCase to snake_case for database
-  const dbUpdates: Record<string, string | number> = {};
+  const dbUpdates: Record<string, string | number | null> = {};
   if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
   if (updates.transactionType !== undefined) dbUpdates.transaction_type = updates.transactionType;
   if (updates.createdAt !== undefined) dbUpdates.created_at = updates.createdAt;
   if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
   if (updates.category !== undefined) dbUpdates.category = updates.category;
-  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.description !== undefined) dbUpdates.description = updates.description || null;
   if (updates.date !== undefined) dbUpdates.date = updates.date;
-  
+
   const fields = Object.keys(dbUpdates);
   if (fields.length === 0) {
-    await db.close();
     return getUserExpenseById(userId, expenseId);
   }
 
   const values = Object.values(dbUpdates);
-  const setClause = fields.map(field => `${field} = ?`).join(', ');
-  
-  await db.run(
-    `UPDATE expenses SET ${setClause} WHERE id = ? AND user_id = ?`,
+  const setClause = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+
+  await query(
+    `UPDATE expenses SET ${setClause} WHERE id = $${fields.length + 1} AND user_id = $${fields.length + 2}`,
     [...values, expenseId, userId]
   );
-  await db.close();
   return getUserExpenseById(userId, expenseId);
 }
 
 export async function getUserCategories(userId: number) {
-  const db = await openDB();
-  const categories = await db.all(
-    'SELECT * FROM categories WHERE user_id = ? ORDER BY name ASC',
+  const result = await query<CategoryRow>(
+    'SELECT id, name, color, is_default FROM categories WHERE user_id = $1 ORDER BY name ASC',
     [userId]
   );
-  await db.close();
-  return categories.map(mapCategoryRow);
+  return result.rows.map(mapCategoryRow);
 }
 
 export async function createCategory(userId: number, category: Omit<Category, 'id'> & { id: string }) {
-  const db = await openDB();
-  const result = await db.run(
-    'INSERT INTO categories (id, user_id, name, color, is_default) VALUES (?, ?, ?, ?, ?)',
+  const result = await query(
+    'INSERT INTO categories (id, user_id, name, color, is_default) VALUES ($1, $2, $3, $4, $5)',
     [category.id, userId, category.name, category.color, category.isDefault]
   );
-  await db.close();
-  return result;
+  return { changes: result.rowCount ?? 0 };
 }
 
 export async function deleteCategory(userId: number, categoryId: string) {
-  const db = await openDB();
-  const result = await db.run(
-    'DELETE FROM categories WHERE id = ? AND user_id = ? AND is_default = FALSE',
+  const result = await query(
+    'DELETE FROM categories WHERE id = $1 AND user_id = $2 AND is_default = FALSE',
     [categoryId, userId]
   );
-  await db.close();
-  return result;
+  return { changes: result.rowCount ?? 0 };
 }
 
 export async function getUserSecurityQuestion(email: string) {
-  const db = await openDB();
-  const user = await db.get(
-    'SELECT security_question FROM users WHERE email = ?',
+  const result = await query<{ security_question: string | null }>(
+    'SELECT security_question FROM users WHERE email = $1',
     [email]
   );
-  await db.close();
-  return user?.security_question;
+  return result.rows[0]?.security_question;
 }
 
 export async function verifySecurityAnswer(email: string, answer: string) {
-  const db = await openDB();
-  const user = await db.get(
-    'SELECT id, security_answer FROM users WHERE email = ?',
+  const result = await query<{ id: number; security_answer: string | null }>(
+    'SELECT id, security_answer FROM users WHERE email = $1',
     [email]
   );
-  await db.close();
+  const user = result.rows[0];
 
   if (!user?.security_answer) {
     return null;
@@ -243,35 +256,22 @@ export async function verifySecurityAnswer(email: string, answer: string) {
 }
 
 export async function updateUserPassword(userId: number, newPassword: string) {
-  const db = await openDB();
-  const result = await db.run(
-    'UPDATE users SET password = ? WHERE id = ?',
+  const result = await query(
+    'UPDATE users SET password = $1 WHERE id = $2',
     [newPassword, userId]
   );
-  await db.close();
-  return result;
+  return { changes: result.rowCount ?? 0 };
 }
 
 export async function deleteUser(userId: number) {
-  const db = await openDB();
-  
-  // Delete all user data first
-  await db.run('DELETE FROM expenses WHERE user_id = ?', [userId]);
-  await db.run('DELETE FROM categories WHERE user_id = ?', [userId]);
-  
-  // Delete the user
-  const result = await db.run('DELETE FROM users WHERE id = ?', [userId]);
-  
-  await db.close();
-  return result;
+  await query('DELETE FROM expenses WHERE user_id = $1', [userId]);
+  await query('DELETE FROM categories WHERE user_id = $1', [userId]);
+
+  const result = await query('DELETE FROM users WHERE id = $1', [userId]);
+  return { changes: result.rowCount ?? 0 };
 }
 
 export async function deleteUserData(userId: number) {
-  const db = await openDB();
-  
-  // Delete all user data but keep the account
-  await db.run('DELETE FROM expenses WHERE user_id = ?', [userId]);
-  await db.run('DELETE FROM categories WHERE user_id = ?', [userId]);
-  
-  await db.close();
+  await query('DELETE FROM expenses WHERE user_id = $1', [userId]);
+  await query('DELETE FROM categories WHERE user_id = $1', [userId]);
 }

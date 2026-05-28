@@ -1,11 +1,11 @@
 # Expense Tracker
 
-A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, SQLite, and Recharts. It helps you log income and expenses quickly, manage categories, review transaction history, and understand spending trends.
+A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, Neon Postgres, and Recharts. It helps you log income and expenses quickly, manage categories, review transaction history, and understand spending trends.
 
 ## Features
 
 - Email/password authentication with HTTP-only JWT cookies
-- SQLite persistence for users, categories, and transactions
+- Neon Postgres persistence for users, categories, and transactions
 - Quick mobile-first transaction entry with category chips, payment buttons, and Today/Yesterday shortcuts
 - Last-used category and payment method remembered in the browser
 - Transaction search, filtering, sorting, editing, and deletion
@@ -22,7 +22,7 @@ A mobile-first personal finance tracker built with Next.js, TypeScript, Tailwind
 - TypeScript
 - Tailwind CSS
 - shadcn/ui local components in `src/components/ui`
-- SQLite via `sqlite` and `sqlite3`
+- Neon Postgres via `@neondatabase/serverless`
 - JWT auth with `jsonwebtoken`
 - Password hashing with `bcryptjs`
 - Charts with Recharts
@@ -48,13 +48,19 @@ npm run build
 
 ## Environment
 
-For local development, the app uses a dev-only JWT fallback. In production, set:
+Create `.env.local` with your Neon connection string:
+
+```bash
+DATABASE_URL="postgresql://..."
+```
+
+For local development, the app uses a dev-only JWT fallback. In production, also set:
 
 ```bash
 JWT_SECRET="replace-with-a-long-random-secret"
 ```
 
-SQLite data is stored in `database.sqlite` at the project root. This is suitable for local or self-hosted use. For serverless deployment, move persistence to a hosted database.
+`npm run init-db` creates the required tables in Neon. The connection string should be the pooled Neon URL when deploying to serverless hosting.
 
 ## Project Structure
 
@@ -70,7 +76,7 @@ src/
   types/              Shared TypeScript types
   utils/              Formatting and analytics helpers
 scripts/
-  init-db.js          Local SQLite schema initializer
+  init-db.js          Neon Postgres schema initializer
 public/
   site.webmanifest    Basic web app manifest
 ```

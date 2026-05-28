@@ -12,7 +12,12 @@ export async function GET() {
 
     await initDB();
     const db = await openDB();
-    const tableInfo = await db.all('PRAGMA table_info(users)');
+    const tableInfo = await db.all(
+      `SELECT column_name AS name, data_type AS type
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'users'
+       ORDER BY ordinal_position`
+    );
     await db.close();
     
     return NextResponse.json({ 
