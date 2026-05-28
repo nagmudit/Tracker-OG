@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Moon, Sun, User } from "lucide-react";
+import { useExpense } from "@/context/ExpenseContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,6 +48,67 @@ function Message({ type, text }: { type: "error" | "success"; text: string }) {
     >
       <CardContent className="py-2 text-sm">{text}</CardContent>
     </Card>
+  );
+}
+
+function PasswordInput({
+  id,
+  name,
+  value,
+  placeholder,
+  show,
+  setShow,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  placeholder: string;
+  show: boolean;
+  setShow: (show: boolean) => void;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="relative">
+      <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        id={id}
+        name={name}
+        type={show ? "text" : "password"}
+        required
+        className="pl-9 pr-10"
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="absolute right-1 top-1/2 -translate-y-1/2"
+        onClick={() => setShow(!show)}
+      >
+        {show ? <EyeOff /> : <Eye />}
+        <span className="sr-only">Toggle password visibility</span>
+      </Button>
+    </div>
+  );
+}
+
+function ThemeSwitch() {
+  const { theme, toggleTheme } = useExpense();
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-lg"
+      className="absolute right-4 top-4"
+      onClick={toggleTheme}
+    >
+      {theme === "light" ? <Moon /> : <Sun />}
+      <span className="sr-only">Toggle theme</span>
+    </Button>
   );
 }
 
@@ -246,49 +308,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
     }
   };
 
-  const PasswordInput = ({
-    id,
-    name,
-    value,
-    placeholder,
-    show,
-    setShow,
-  }: {
-    id: string;
-    name: string;
-    value: string;
-    placeholder: string;
-    show: boolean;
-    setShow: (show: boolean) => void;
-  }) => (
-    <div className="relative">
-      <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        id={id}
-        name={name}
-        type={show ? "text" : "password"}
-        required
-        className="pl-9 pr-10"
-        placeholder={placeholder}
-        value={value}
-        onChange={handleInputChange}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        className="absolute right-1 top-1/2 -translate-y-1/2"
-        onClick={() => setShow(!show)}
-      >
-        {show ? <EyeOff /> : <Eye />}
-        <span className="sr-only">Toggle password visibility</span>
-      </Button>
-    </div>
-  );
-
   if (showForgotPassword) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+        <ThemeSwitch />
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
             <CardTitle>{showResetForm ? "Reset Password" : "Forgot Password"}</CardTitle>
@@ -401,7 +424,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <ThemeSwitch />
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <CardTitle>{isLogin ? "Sign in" : "Create account"}</CardTitle>
@@ -457,6 +481,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                 placeholder="Password"
                 show={showPassword}
                 setShow={setShowPassword}
+                onChange={handleInputChange}
               />
             </div>
 
@@ -471,6 +496,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     placeholder="Confirm password"
                     show={showConfirmPassword}
                     setShow={setShowConfirmPassword}
+                    onChange={handleInputChange}
                   />
                 </div>
 

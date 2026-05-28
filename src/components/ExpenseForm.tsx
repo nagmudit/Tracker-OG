@@ -202,17 +202,17 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       <Sheet open={isOpen} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="mx-auto max-h-[92dvh] max-w-2xl overflow-y-auto rounded-t-xl border-border"
+          className="no-scrollbar mx-auto max-h-[86dvh] max-w-xl gap-0 overflow-y-auto rounded-t-xl border-border"
         >
-          <SheetHeader>
+          <SheetHeader className="p-4 pb-2">
             <SheetTitle>{isEditing ? "Edit transaction" : "Quick add"}</SheetTitle>
             <SheetDescription>
               {isEditing ? "Update the saved entry." : "Amount first, details second."}
             </SheetDescription>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4">
-            <FieldGroup>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-4">
+            <FieldGroup className="gap-4">
               <Field>
                 <FieldLabel>Type</FieldLabel>
                 <ToggleGroup
@@ -224,10 +224,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                   className="grid w-full grid-cols-2 rounded-lg bg-muted p-1"
                   spacing={0}
                 >
-                  <ToggleGroupItem value="debit" className="h-11">
+                  <ToggleGroupItem value="debit" className="h-9">
                     Expense
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="credit" className="h-11">
+                  <ToggleGroupItem value="credit" className="h-9">
                     Income
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -235,7 +235,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
               <Field data-invalid={Boolean(error && !formData.amount)}>
                 <FieldLabel htmlFor="amount">Amount</FieldLabel>
-                <InputGroup className="h-14">
+                <InputGroup className="h-12">
                   <InputGroupAddon>
                     <IndianRupee />
                   </InputGroupAddon>
@@ -248,7 +248,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     value={formData.amount}
                     onChange={(event) => updateField("amount", event.target.value)}
                     placeholder="0"
-                    className="text-2xl font-semibold"
+                    className="text-xl font-semibold"
                     aria-invalid={Boolean(error && !formData.amount)}
                     autoFocus
                   />
@@ -263,15 +263,15 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     const nextValue = value[0];
                     if (nextValue) updateField("category", nextValue);
                   }}
-                  className="flex w-full overflow-x-auto pb-1"
+                  className="no-scrollbar flex w-full overflow-x-auto pb-1"
                   variant="outline"
                 >
                   {categoryOptions.map((category) => (
                     <ToggleGroupItem
-                      key={category.id}
-                      value={category.name}
-                      className="shrink-0 rounded-full"
-                    >
+                        key={category.id}
+                        value={category.name}
+                        className="h-8 shrink-0 rounded-full"
+                      >
                       <span
                         className="size-2.5 rounded-full border border-border"
                         style={{ backgroundColor: tokenToCssVar(category.color) }}
@@ -314,7 +314,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                       <ToggleGroupItem
                         key={method.value}
                         value={method.value}
-                        className="h-16 flex-col gap-1 px-1 text-xs"
+                        className="h-12 flex-col gap-0.5 px-1 text-xs"
                       >
                         <Icon />
                         <span>{method.label}</span>
@@ -335,10 +335,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                   className="grid w-full grid-cols-2 gap-2"
                   variant="outline"
                 >
-                  <ToggleGroupItem value={today()} className="h-11">
+                  <ToggleGroupItem value={today()} className="h-9">
                     Today
                   </ToggleGroupItem>
-                  <ToggleGroupItem value={yesterday()} className="h-11">
+                  <ToggleGroupItem value={yesterday()} className="h-9">
                     Yesterday
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -368,7 +368,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               {error && <FieldError>{error}</FieldError>}
             </FieldGroup>
 
-            <SheetFooter className="sticky bottom-0 -mx-4 border-t border-border bg-popover px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <SheetFooter className="sticky bottom-0 -mx-4 border-t border-border bg-popover px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="grid grid-cols-2 gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
