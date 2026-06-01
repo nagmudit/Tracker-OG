@@ -7,6 +7,24 @@ export interface Expense {
   description?: string;
   date: string;
   createdAt: string;
+  generatedFromScheduleId?: string;
+  generatedForDate?: string;
+}
+
+export type ScheduleFrequency = 'once' | 'weekly' | 'monthly' | 'yearly';
+
+export interface ScheduledTransaction {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  paymentMethod: Expense['paymentMethod'];
+  transactionType: Expense['transactionType'];
+  description?: string;
+  frequency: ScheduleFrequency;
+  nextRunDate: string;
+  active: boolean;
+  createdAt: string;
 }
 
 export interface Category {
@@ -22,6 +40,11 @@ export interface ExpenseContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
   deleteExpense: (id: string) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
+  scheduledTransactions: ScheduledTransaction[];
+  addScheduledTransaction: (schedule: Omit<ScheduledTransaction, 'id' | 'createdAt'>) => Promise<void>;
+  updateScheduledTransaction: (id: string, schedule: Partial<ScheduledTransaction>) => Promise<void>;
+  deleteScheduledTransaction: (id: string) => Promise<void>;
+  processDueScheduledTransactions: () => Promise<void>;
   addCategory: (category: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
   reloadData: () => Promise<void>;

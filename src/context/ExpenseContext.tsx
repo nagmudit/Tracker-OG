@@ -6,11 +6,18 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
-import { Expense, Category, ExpenseContextType } from "@/types/expense";
+import {
+  Expense,
+  Category,
+  ExpenseContextType,
+  ScheduledTransaction,
+} from "@/types/expense";
 import { defaultCategories } from "@/utils/expense-utils";
 import { useAuth } from "./AuthContext";
+import { toast } from "sonner";
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
 
@@ -30,9 +37,100 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   children,
 }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [scheduledTransactions, setScheduledTransactions] = useState<
+    ScheduledTransaction[]
+  >([]);
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const { user } = useAuth();
+  const processedUserIdRef = useRef<number | null>(null);
+
+  const deleteExpense = useCallback(
+    async (id: string) => {
+      if (!user) return;
+
+      try {
+        const response = await fetch(`/api/expenses?id=${id}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+        }
+      } catch (error) {
+        console.error("Failed to delete expense:", error);
+      }
+    },
+    [user]
+  );
+
+  const processDueScheduledTransactions = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/scheduled-transactions/process", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ today: new Date().toISOString().split("T")[0] }),
+      });
+
+      if (!response.ok) return;
+
+      const data: {
+        expenses?: Expense[];
+        schedules?: ScheduledTransaction[];
+      } = await response.json();
+      const generatedExpenses = data.expenses || [];
+      const updatedSchedules = data.schedules || [];
+
+      if (generatedExpenses.length > 0) {
+        setExpenses((prev) => {
+          const existingIds = new Set(prev.map((expense) => expense.id));
+          const nextExpenses = generatedExpenses.filter(
+            (expense) => !existingIds.has(expense.id)
+          );
+          return [...nextExpenses, ...prev];
+        });
+
+        generatedExpenses.forEach((expense) => {
+          toast.success("Scheduled transaction added", {
+            description: `${expense.category} was added to your ${
+              expense.transactionType === "credit" ? "income" : "expenses"
+            }.`,
+            action: {
+              label: "Undo",
+              onClick: () => deleteExpense(expense.id),
+            },
+            cancel: {
+              label: "Edit",
+              onClick: () => {
+                window.dispatchEvent(
+                  new CustomEvent("money-log:edit-transaction", {
+                    detail: expense,
+                  })
+                );
+              },
+            },
+          });
+        });
+      }
+
+      if (updatedSchedules.length > 0) {
+        setScheduledTransactions((prev) =>
+          prev.map((schedule) => {
+            const updated = updatedSchedules.find((item) => item.id === schedule.id);
+            return updated || schedule;
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Failed to process scheduled transactions:", error);
+    }
+  }, [deleteExpense, user]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -47,6 +145,15 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         setExpenses(expensesData.expenses || []);
       }
 
+      // Load schedules
+      const schedulesResponse = await fetch("/api/scheduled-transactions", {
+        credentials: "include",
+      });
+      if (schedulesResponse.ok) {
+        const schedulesData = await schedulesResponse.json();
+        setScheduledTransactions(schedulesData.scheduledTransactions || []);
+      }
+
       // Load categories
       const categoriesResponse = await fetch("/api/categories", {
         credentials: "include",
@@ -55,10 +162,15 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         const categoriesData = await categoriesResponse.json();
         setCategories(categoriesData.categories || defaultCategories);
       }
+
+      if (processedUserIdRef.current !== user.id) {
+        processedUserIdRef.current = user.id;
+        await processDueScheduledTransactions();
+      }
     } catch (error) {
       console.error("Failed to load data:", error);
     }
-  }, [user]);
+  }, [processDueScheduledTransactions, user]);
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -81,7 +193,9 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     } else {
       // Clear data when user logs out
       setExpenses([]);
+      setScheduledTransactions([]);
       setCategories(defaultCategories);
+      processedUserIdRef.current = null;
     }
   }, [user, loadData]);
 
@@ -115,23 +229,6 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
       }
     } catch (error) {
       console.error("Failed to add expense:", error);
-    }
-  };
-
-  const deleteExpense = async (id: string) => {
-    if (!user) return;
-
-    try {
-      const response = await fetch(`/api/expenses?id=${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        setExpenses((prev) => prev.filter((expense) => expense.id !== id));
-      }
-    } catch (error) {
-      console.error("Failed to delete expense:", error);
     }
   };
 
@@ -208,8 +305,82 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  const addScheduledTransaction = async (
+    schedule: Omit<ScheduledTransaction, "id" | "createdAt">
+  ) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/scheduled-transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(schedule),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setScheduledTransactions((prev) => [
+          data.scheduledTransaction,
+          ...prev,
+        ]);
+      }
+    } catch (error) {
+      console.error("Failed to add scheduled transaction:", error);
+    }
+  };
+
+  const updateScheduledTransaction = async (
+    id: string,
+    schedule: Partial<ScheduledTransaction>
+  ) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/scheduled-transactions", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ id, ...schedule }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setScheduledTransactions((prev) =>
+          prev.map((item) =>
+            item.id === id ? data.scheduledTransaction : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to update scheduled transaction:", error);
+    }
+  };
+
+  const deleteScheduledTransaction = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(`/api/scheduled-transactions?id=${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setScheduledTransactions((prev) => prev.filter((item) => item.id !== id));
+      }
+    } catch (error) {
+      console.error("Failed to delete scheduled transaction:", error);
+    }
+  };
+
   const clearData = () => {
     setExpenses([]);
+    setScheduledTransactions([]);
     setCategories(defaultCategories);
   };
 
@@ -219,6 +390,11 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     addExpense,
     deleteExpense,
     updateExpense,
+    scheduledTransactions,
+    addScheduledTransaction,
+    updateScheduledTransaction,
+    deleteScheduledTransaction,
+    processDueScheduledTransactions,
     addCategory,
     deleteCategory,
     reloadData: loadData,

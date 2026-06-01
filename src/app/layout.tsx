@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ExpenseProvider } from "@/context/ExpenseContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   metadataBase: new URL("http://localhost:3000"),
@@ -84,6 +85,7 @@ export default function RootLayout({
           <AuthProvider>
             <ExpenseProvider>{children}</ExpenseProvider>
           </AuthProvider>
+          <Toaster richColors />
         </TooltipProvider>
       </body>
     </html>

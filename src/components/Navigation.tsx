@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import {
   BarChart3,
   Bell,
+  CalendarClock,
+  HandCoins,
   Home,
   List,
   LogOut,
@@ -19,8 +21,11 @@ import Analytics from "@/components/Analytics";
 import CategoryManager from "@/components/CategoryManager";
 import ProfileManager from "@/components/ProfileManager";
 import ExpenseForm from "@/components/ExpenseForm";
+import ScheduledTransactions from "@/components/ScheduledTransactions";
+import SplitBills from "@/components/SplitBills";
 import { useAuth } from "@/context/AuthContext";
 import { useExpense } from "@/context/ExpenseContext";
+import { Expense } from "@/types/expense";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +38,8 @@ import {
 const desktopNavItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
   { id: "transactions", label: "Transactions", icon: List },
+  { id: "scheduled", label: "Scheduled", icon: CalendarClock },
+  { id: "split", label: "Split Bills", icon: HandCoins },
   { id: "analytics", label: "Insights", icon: BarChart3 },
   { id: "categories", label: "Categories", icon: Settings },
   { id: "profile", label: "Profile", icon: UserCog },
@@ -42,8 +49,8 @@ const mobileNavItems = [
   { id: "dashboard", label: "Home", icon: Home },
   { id: "transactions", label: "History", icon: List },
   { id: "add", label: "Add", icon: Plus },
-  { id: "analytics", label: "Insights", icon: BarChart3 },
-  { id: "profile", label: "Profile", icon: UserCog },
+  { id: "scheduled", label: "Auto", icon: CalendarClock },
+  { id: "split", label: "Split", icon: HandCoins },
 ] as const;
 
 type AppTab = (typeof desktopNavItems)[number]["id"];
@@ -51,8 +58,27 @@ type AppTab = (typeof desktopNavItems)[number]["id"];
 const Navigation: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Expense | null>(null);
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useExpense();
+
+  React.useEffect(() => {
+    const handleEditTransaction = (event: Event) => {
+      const transaction = (event as CustomEvent<Expense>).detail;
+      if (!transaction) return;
+
+      setEditingTransaction(transaction);
+      setActiveTab("transactions");
+    };
+
+    window.addEventListener("money-log:edit-transaction", handleEditTransaction);
+    return () => {
+      window.removeEventListener(
+        "money-log:edit-transaction",
+        handleEditTransaction
+      );
+    };
+  }, []);
 
   const initials =
     user?.name
@@ -68,6 +94,10 @@ const Navigation: React.FC = () => {
         return <Dashboard />;
       case "transactions":
         return <ExpenseList />;
+      case "scheduled":
+        return <ScheduledTransactions />;
+      case "split":
+        return <SplitBills />;
       case "analytics":
         return <Analytics />;
       case "categories":
@@ -243,6 +273,16 @@ const Navigation: React.FC = () => {
         open={isExpenseFormOpen}
         onOpenChange={setIsExpenseFormOpen}
         hideTrigger
+      />
+
+      <ExpenseForm
+        open={Boolean(editingTransaction)}
+        onOpenChange={(open) => {
+          if (!open) setEditingTransaction(null);
+        }}
+        expense={editingTransaction}
+        hideTrigger
+        onSaved={() => setEditingTransaction(null)}
       />
     </div>
   );
