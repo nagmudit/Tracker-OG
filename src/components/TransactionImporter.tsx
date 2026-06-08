@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
-import { readSheet } from "read-excel-file/browser";
+import readXlsxFile, { readSheet } from "read-excel-file/browser";
+import type { Sheet as XlsxSheet, SheetData } from "read-excel-file/browser";
 import Papa from "papaparse";
 import {
   AlertCircle,
@@ -41,6 +42,7 @@ interface TransactionImporterProps {
 
 type ParsedCell = string | number | boolean | Date | null;
 type ParsedRow = Record<string, ParsedCell>;
+type RawSheetRow = SheetData[number];
 type ImportRow = Omit<Expense, "id" | "createdAt"> & {
   sourceRow: number;
   warnings: string[];
@@ -55,7 +57,7 @@ interface ColumnMapping {
   type: string;
 }
 
-type Step = "UPLOAD" | "MAP_COLUMNS" | "REVIEW";
+type Step = "UPLOAD" | "SELECT_SHEET" | "MAP_COLUMNS" | "REVIEW";
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 500;
@@ -71,10 +73,7 @@ const emptyMapping: ColumnMapping = {
   type: "",
 };
 
-const normalizeHeader = (value: unknown, index: number) => {
-  const label = String(value ?? "").trim();
-  return label || `Column ${index + 1}`;
-};
+const normalizeHeader = (value: unknown) => String(value ?? "").trim();
 
 const getHeaderSignature = (headers: string[]) =>
   headers
@@ -293,6 +292,8 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
   const { addExpensesBulk, categories, expenses } = useExpense();
   const [step, setStep] = useState<Step>("UPLOAD");
   const [fileName, setFileName] = useState("");
+  const [workbookSheets, setWorkbookSheets] = useState<XlsxSheet[]>([]);
+  const [selectedSheetName, setSelectedSheetName] = useState("");
   const [rawData, setRawData] = useState<ParsedRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>(emptyMapping);
@@ -360,6 +361,8 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
   const resetState = () => {
     setStep("UPLOAD");
     setFileName("");
+    setWorkbookSheets([]);
+    setSelectedSheetName("");
     setRawData([]);
     setHeaders([]);
     setMapping(emptyMapping);
@@ -485,19 +488,44 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
     });
   };
 
+  const parseXlsxRows = (rows: RawSheetRow[], sheetName?: string) => {
+    const headerRow = rows[0] || [];
+    const columns = headerRow
+      .map((cell, index) => ({
+        header: normalizeHeader(cell),
+        index,
+      }))
+      .filter((column) => column.header);
+
+    if (columns.length === 0) {
+      toast.error("The selected sheet does not contain a header row.");
+      return;
+    }
+
+    const foundHeaders = columns.map((column) => column.header);
+    const data = rows.slice(1).map((row) =>
+      columns.reduce<ParsedRow>((record, column) => {
+        record[column.header] = (row[column.index] as ParsedCell) ?? null;
+        return record;
+      }, {})
+    );
+
+    if (sheetName) setSelectedSheetName(sheetName);
+    handleDataParsed(data, foundHeaders);
+  };
+
   const parseXlsxFile = async (file: File) => {
     try {
-      const rows = await readSheet(file);
-      const headerRow = rows[0] || [];
-      const foundHeaders = headerRow.map(normalizeHeader);
-      const data = rows.slice(1).map((row) =>
-        foundHeaders.reduce<ParsedRow>((record, header, index) => {
-          record[header] = (row[index] as ParsedCell) ?? null;
-          return record;
-        }, {})
-      );
+      const sheets = await readXlsxFile(file);
 
-      handleDataParsed(data, foundHeaders);
+      if (sheets.length > 1) {
+        setWorkbookSheets(sheets);
+        setSelectedSheetName(sheets[0]?.sheet || "");
+        setStep("SELECT_SHEET");
+        return;
+      }
+
+      parseXlsxRows(sheets[0]?.data || (await readSheet(file)), sheets[0]?.sheet);
     } catch (error) {
       toast.error("Failed to parse Excel file.");
       console.error(error);
@@ -540,6 +568,16 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
     event.stopPropagation();
     const droppedFile = event.dataTransfer.files?.[0];
     if (droppedFile) processFile(droppedFile);
+  };
+
+  const continueWithSelectedSheet = () => {
+    const sheet = workbookSheets.find((item) => item.sheet === selectedSheetName);
+    if (!sheet) {
+      toast.error("Select a sheet to continue.");
+      return;
+    }
+
+    parseXlsxRows(sheet.data, sheet.sheet);
   };
 
   const categorizeDescription = (description: string) => {
@@ -815,6 +853,86 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                   Legacy .xls files are blocked because safe browser parsing support is
                   limited. Export again as .xlsx or CSV from your UPI app.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {step === "SELECT_SHEET" && (
+            <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-6">
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm">
+                <FileSpreadsheet className="mt-0.5 shrink-0 text-primary" />
+                <div className="flex flex-col gap-1">
+                  <p className="font-medium">{fileName || "Excel workbook"}</p>
+                  <p className="text-muted-foreground">
+                    This workbook has multiple sheets. Choose the sheet that contains
+                    the transactions you want to import.
+                  </p>
+                </div>
+              </div>
+
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                Sheet
+                <Select
+                  value={selectedSheetName}
+                  onValueChange={(value) => {
+                    if (value === null) return;
+                    setSelectedSheetName(value);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a sheet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {workbookSheets.map((sheet) => (
+                        <SelectItem key={sheet.sheet} value={sheet.sheet}>
+                          {sheet.sheet}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
+
+              <div className="grid gap-3">
+                {workbookSheets.map((sheet) => (
+                  <button
+                    key={sheet.sheet}
+                    type="button"
+                    className={cn(
+                      "flex items-center justify-between gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/40",
+                      selectedSheetName === sheet.sheet
+                        ? "border-primary"
+                        : "border-border"
+                    )}
+                    onClick={() => setSelectedSheetName(sheet.sheet)}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">
+                        {sheet.sheet}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.max(sheet.data.length - 1, 0)} possible rows
+                      </span>
+                    </span>
+                    <Badge
+                      variant={
+                        selectedSheetName === sheet.sheet ? "default" : "outline"
+                      }
+                    >
+                      {selectedSheetName === sheet.sheet ? "Selected" : "Choose"}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-auto flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setStep("UPLOAD")}>
+                  Back
+                </Button>
+                <Button onClick={continueWithSelectedSheet} disabled={!selectedSheetName}>
+                  Continue to Mapping
+                </Button>
               </div>
             </div>
           )}
