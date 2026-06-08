@@ -803,20 +803,25 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent side="bottom" className="h-[92vh] p-0 sm:h-[88vh]">
-        <SheetHeader className="border-b border-border px-5 py-4 text-left">
-          <SheetTitle className="text-xl font-semibold">Import UPI Transactions</SheetTitle>
-          <SheetDescription>
+      <SheetContent
+        side="bottom"
+        className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden p-0 sm:h-[92dvh] sm:max-h-[92dvh]"
+      >
+        <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left sm:px-5 sm:py-4">
+          <SheetTitle className="text-lg font-semibold sm:text-xl">
+            Import UPI Transactions
+          </SheetTitle>
+          <SheetDescription className="text-xs sm:text-sm">
             Upload a CSV or XLSX export, review every row, then save approved transactions.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex h-[calc(100%-5.5rem)] flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {step === "UPLOAD" && (
-            <div className="flex flex-1 flex-col gap-5 px-5 py-6">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:gap-5 sm:px-5 sm:py-6">
               <button
                 type="button"
-                className="flex min-h-[22rem] flex-1 cursor-pointer flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-border bg-muted/20 p-8 text-center transition-colors hover:bg-muted/40"
+                className="flex min-h-[18rem] flex-1 cursor-pointer flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-border bg-muted/20 p-5 text-center transition-colors hover:bg-muted/40 sm:min-h-[22rem] sm:p-8"
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -828,7 +833,9 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                   <FileSpreadsheet />
                 </span>
                 <span className="flex flex-col gap-2">
-                  <span className="text-lg font-medium">Drop a statement file here</span>
+                  <span className="text-base font-medium sm:text-lg">
+                    Drop a statement file here
+                  </span>
                   <span className="max-w-md text-sm text-muted-foreground">
                     CSV and XLSX exports are supported. Files must be under 2 MB and
                     contain up to {MAX_IMPORT_ROWS} transaction rows.
@@ -858,11 +865,11 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
           )}
 
           {step === "SELECT_SHEET" && (
-            <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-6">
+            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:gap-6 sm:px-5 sm:py-6">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm">
                 <FileSpreadsheet className="mt-0.5 shrink-0 text-primary" />
-                <div className="flex flex-col gap-1">
-                  <p className="font-medium">{fileName || "Excel workbook"}</p>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <p className="truncate font-medium">{fileName || "Excel workbook"}</p>
                   <p className="text-muted-foreground">
                     This workbook has multiple sheets. Choose the sheet that contains
                     the transactions you want to import.
@@ -926,11 +933,15 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                 ))}
               </div>
 
-              <div className="mt-auto flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setStep("UPLOAD")}>
+              <div className="mt-auto flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3">
+                <Button className="w-full sm:w-auto" variant="outline" onClick={() => setStep("UPLOAD")}>
                   Back
                 </Button>
-                <Button onClick={continueWithSelectedSheet} disabled={!selectedSheetName}>
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={continueWithSelectedSheet}
+                  disabled={!selectedSheetName}
+                >
                   Continue to Mapping
                 </Button>
               </div>
@@ -938,11 +949,11 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
           )}
 
           {step === "MAP_COLUMNS" && (
-            <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-6">
+            <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 sm:gap-6 sm:px-5 sm:py-6">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-sm">
                 <AlertCircle className="mt-0.5 shrink-0 text-primary" />
-                <div className="flex flex-col gap-1">
-                  <p className="font-medium">{fileName || "Statement file"}</p>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <p className="truncate font-medium">{fileName || "Statement file"}</p>
                   <p className="text-muted-foreground">
                     Match the columns from your file. You can edit or delete rows in
                     the next screen before anything is saved.
@@ -961,7 +972,7 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                   return (
                     <div
                       key={field.id}
-                      className="grid gap-3 rounded-lg border border-border bg-card p-4 lg:grid-cols-[13rem_1fr_1.3fr]"
+                      className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:p-4 lg:grid-cols-[minmax(11rem,13rem)_minmax(13rem,1fr)_minmax(0,1.3fr)]"
                     >
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1040,11 +1051,12 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                 </div>
               )}
 
-              <div className="mt-auto flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setStep("UPLOAD")}>
+              <div className="mt-auto flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3">
+                <Button className="w-full sm:w-auto" variant="outline" onClick={() => setStep("UPLOAD")}>
                   Back
                 </Button>
                 <Button
+                  className="w-full sm:w-auto"
                   onClick={generatePreview}
                   disabled={
                     !canGeneratePreview ||
@@ -1060,8 +1072,8 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
 
           {step === "REVIEW" && (
             <>
-              <div className="border-b border-border bg-background px-5 py-4">
-                <div className="grid gap-3 sm:grid-cols-4">
+              <div className="shrink-0 border-b border-border bg-background px-4 py-3 sm:px-5 sm:py-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
                   <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-xs text-muted-foreground">Rows</p>
                     <p className="text-lg font-semibold">{previewData.length}</p>
@@ -1081,8 +1093,8 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-5 py-4">
-                <div className="flex flex-col gap-3 pb-24">
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+                <div className="flex flex-col gap-3 pb-6">
                   {previewData.length === 0 && (
                     <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
                       No importable rows were found.
@@ -1093,7 +1105,7 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                     <div
                       key={`${item.sourceRow}-${index}`}
                       className={cn(
-                        "grid gap-3 rounded-lg border bg-card p-4",
+                        "grid min-w-0 gap-3 rounded-lg border bg-card p-3 sm:p-4",
                         item.warnings.length > 0 ? "border-destructive/50" : "border-border"
                       )}
                     >
@@ -1117,8 +1129,9 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                         </Button>
                       </div>
 
-                      <div className="grid gap-3 lg:grid-cols-[1.3fr_9rem_8.5rem_9rem_12rem]">
+                      <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(12rem,1.3fr)_9rem_8.5rem_9rem_minmax(10rem,12rem)]">
                         <Input
+                          className="sm:col-span-2 xl:col-span-1"
                           value={item.description || ""}
                           aria-label={`Description for row ${item.sourceRow}`}
                           placeholder="Description"
@@ -1197,15 +1210,16 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                 </div>
               </div>
 
-              <div className="border-t border-border bg-background p-4">
-                <div className="mx-auto flex max-w-4xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="shrink-0 border-t border-border bg-background p-3 sm:p-4">
+                <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
                     {invalidRowCount > 0
                       ? "Fix or delete flagged rows before saving."
                       : "Only reviewed rows will be added to your account."}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
                     <Button
+                      className="w-full sm:w-auto"
                       variant="outline"
                       onClick={() => setStep("MAP_COLUMNS")}
                       disabled={isUploading}
@@ -1213,6 +1227,7 @@ export const TransactionImporter: React.FC<TransactionImporterProps> = ({
                       Back
                     </Button>
                     <Button
+                      className="w-full sm:w-auto"
                       onClick={handleSave}
                       disabled={
                         isUploading || previewData.length === 0 || invalidRowCount > 0
