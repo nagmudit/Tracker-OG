@@ -14,6 +14,7 @@ import {
   Trash2,
   WalletCards,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useExpense } from "@/context/ExpenseContext";
 import { formatCurrency } from "@/utils/expense-utils";
 import { Expense } from "@/types/expense";
@@ -167,7 +168,11 @@ const ExpenseList: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!deletingExpense) return;
-    await deleteExpense(deletingExpense.id);
+    const result = await deleteExpense(deletingExpense.id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
     setDeletingExpense(null);
   };
 

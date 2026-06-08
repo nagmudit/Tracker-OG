@@ -155,6 +155,7 @@ const ScheduledTransactions: React.FC = () => {
     useState<ScheduledTransaction | null>(null);
   const [formData, setFormData] = useState<FormState>(defaultFormState);
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeSchedules = scheduledTransactions.filter((item) => item.active);
   const pausedSchedules = scheduledTransactions.filter((item) => !item.active);
@@ -228,11 +229,20 @@ const ScheduledTransactions: React.FC = () => {
       active: formData.active,
     };
 
+    setIsSaving(true);
+    const result = editingSchedule
+      ? await updateScheduledTransaction(editingSchedule.id, payload)
+      : await addScheduledTransaction(payload);
+    setIsSaving(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
     if (editingSchedule) {
-      await updateScheduledTransaction(editingSchedule.id, payload);
       toast.success("Schedule updated");
     } else {
-      await addScheduledTransaction(payload);
       toast.success("Schedule created");
     }
 
@@ -242,14 +252,36 @@ const ScheduledTransactions: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!deletingSchedule) return;
-    await deleteScheduledTransaction(deletingSchedule.id);
+    const result = await deleteScheduledTransaction(deletingSchedule.id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
     toast.success("Schedule deleted");
     setDeletingSchedule(null);
   };
 
   const toggleActive = async (schedule: ScheduledTransaction) => {
-    await updateScheduledTransaction(schedule.id, { active: !schedule.active });
+    const result = await updateScheduledTransaction(schedule.id, {
+      active: !schedule.active,
+    });
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
     toast.success(schedule.active ? "Schedule paused" : "Schedule resumed");
+  };
+
+  const checkNow = async () => {
+    const result = await processDueScheduledTransactions();
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    if (result.data.expenses.length === 0) {
+      toast.info("No scheduled transactions are due");
+    }
   };
 
   const openEdit = (schedule: ScheduledTransaction) => {
@@ -335,7 +367,7 @@ const ScheduledTransactions: React.FC = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={processDueScheduledTransactions}
+                    onClick={checkNow}
                   >
                     Check now
                   </Button>
@@ -686,7 +718,7 @@ const ScheduledTransactions: React.FC = () => {
                 </Button>
               </Field>
 
-              {error && <FieldError>{error}</FieldError>}
+              {error && <FieldError role="alert">{error}</FieldError>}
             </FieldGroup>
 
             <SheetFooter className="sticky bottom-0 -mx-5 border-t border-border bg-popover px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -694,12 +726,13 @@ const ScheduledTransactions: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={isSaving}
                   onClick={() => setIsSheetOpen(false)}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" size="lg">
-                  {editingSchedule ? "Save" : "Create"}
+                <Button type="submit" size="lg" disabled={isSaving}>
+                  {isSaving ? "Saving..." : editingSchedule ? "Save" : "Create"}
                 </Button>
               </div>
             </SheetFooter>

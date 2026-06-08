@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import {
   BarChart3,
-  Bell,
   CalendarClock,
   HandCoins,
   Home,
   List,
   LogOut,
+  MoreHorizontal,
   Moon,
   Plus,
   Settings,
@@ -30,6 +30,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -49,8 +56,15 @@ const mobileNavItems = [
   { id: "dashboard", label: "Home", icon: Home },
   { id: "transactions", label: "History", icon: List },
   { id: "add", label: "Add", icon: Plus },
-  { id: "scheduled", label: "Auto", icon: CalendarClock },
-  { id: "split", label: "Split", icon: HandCoins },
+  { id: "analytics", label: "Insights", icon: BarChart3 },
+  { id: "more", label: "More", icon: MoreHorizontal },
+] as const;
+
+const mobileMoreItems = [
+  { id: "scheduled", label: "Scheduled", description: "Recurring entries", icon: CalendarClock },
+  { id: "split", label: "Split Bills", description: "Shared expenses", icon: HandCoins },
+  { id: "categories", label: "Categories", description: "Spending groups", icon: Settings },
+  { id: "profile", label: "Profile", description: "Account and data", icon: UserCog },
 ] as const;
 
 type AppTab = (typeof desktopNavItems)[number]["id"];
@@ -58,6 +72,7 @@ type AppTab = (typeof desktopNavItems)[number]["id"];
 const Navigation: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Expense | null>(null);
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useExpense();
@@ -87,11 +102,18 @@ const Navigation: React.FC = () => {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "U";
+  const moreTabIds: AppTab[] = mobileMoreItems.map((item) => item.id);
+  const isMoreActive = moreTabIds.includes(activeTab);
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return (
+          <Dashboard
+            onAddTransaction={() => setIsExpenseFormOpen(true)}
+            onViewTransactions={() => setActiveTab("transactions")}
+          />
+        );
       case "transactions":
         return <ExpenseList />;
       case "scheduled":
@@ -227,9 +249,6 @@ const Navigation: React.FC = () => {
               >
                 {theme === "light" ? <Moon /> : <Sun />}
               </Button>
-              <Button type="button" variant="ghost" size="icon-lg" aria-label="Notifications">
-                <Bell />
-              </Button>
             </div>
           </div>
           {renderContent()}
@@ -241,7 +260,9 @@ const Navigation: React.FC = () => {
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isAdd = item.id === "add";
-            const isActive = activeTab === item.id;
+            const isMore = item.id === "more";
+            const isActive =
+              activeTab === item.id || (isMore && isMoreActive);
 
             return (
               <Button
@@ -258,6 +279,10 @@ const Navigation: React.FC = () => {
                     setIsExpenseFormOpen(true);
                     return;
                   }
+                  if (isMore) {
+                    setIsMoreOpen(true);
+                    return;
+                  }
                   setActiveTab(item.id as AppTab);
                 }}
               >
@@ -268,6 +293,49 @@ const Navigation: React.FC = () => {
           })}
         </div>
       </nav>
+
+      <Sheet open={isMoreOpen} onOpenChange={setIsMoreOpen}>
+        <SheetContent
+          side="bottom"
+          className="mx-auto max-h-[80dvh] max-w-xl rounded-t-3xl border-border lg:hidden"
+        >
+          <SheetHeader className="text-left">
+            <SheetTitle>More</SheetTitle>
+            <SheetDescription className="sr-only">
+              Access the same sections available on desktop.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {mobileMoreItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <Button
+                  key={item.id}
+                  type="button"
+                  variant={isActive ? "default" : "ghost"}
+                  className="h-auto justify-start gap-3 rounded-lg p-4 text-left"
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setIsMoreOpen(false);
+                  }}
+                >
+                  <Icon data-icon="inline-start" />
+                  <span className="flex min-w-0 flex-col gap-1">
+                    <span className="truncate text-sm font-semibold">
+                      {item.label}
+                    </span>
+                    <span className="truncate text-xs font-normal opacity-75">
+                      {item.description}
+                    </span>
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <ExpenseForm
         open={isExpenseFormOpen}

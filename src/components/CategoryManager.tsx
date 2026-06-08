@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Edit3, Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { useExpense } from "@/context/ExpenseContext";
 import { categoryColorTokens, tokenToCssVar } from "@/utils/theme-colors";
 import {
@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
@@ -41,20 +41,30 @@ const CategoryManager: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [newCategory, setNewCategory] = useState({
     name: "",
     color: "chart-1",
   });
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newCategory.name.trim()) return;
 
-    addCategory({
+    setIsSaving(true);
+    setError("");
+    const result = await addCategory({
       name: newCategory.name.trim(),
       color: newCategory.color,
       isDefault: false,
     });
+    setIsSaving(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
 
     setNewCategory({ name: "", color: "chart-1" });
     setIsOpen(false);
@@ -62,7 +72,11 @@ const CategoryManager: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!deletingCategory) return;
-    await deleteCategory(deletingCategory.id);
+    const result = await deleteCategory(deletingCategory.id);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     setDeletingCategory(null);
   };
 
@@ -79,20 +93,26 @@ const CategoryManager: React.FC = () => {
             Categories
           </h2>
         </div>
-        <Button type="button" onClick={() => setIsOpen(true)}>
+        <Button
+          type="button"
+          onClick={() => {
+            setError("");
+            setIsOpen(true);
+          }}
+        >
           <Plus data-icon="inline-start" />
           Add category
         </Button>
       </header>
 
-      <InputGroup className="h-14 border-transparent bg-muted">
+        <InputGroup className="h-14 border-transparent bg-muted">
         <InputGroupAddon>
           <Search />
         </InputGroupAddon>
         <InputGroupInput
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search categories..."
+          placeholder="Search categories"
           className="text-lg"
         />
       </InputGroup>
@@ -129,10 +149,6 @@ const CategoryManager: React.FC = () => {
                 <Badge variant={category.isDefault ? "secondary" : "outline"} className="hidden sm:inline-flex">
                   {category.isDefault ? "Default" : "Custom"}
                 </Badge>
-                <Button type="button" variant="ghost" size="icon-sm" disabled>
-                  <Edit3 />
-                  <span className="sr-only">Edit category</span>
-                </Button>
                 {!category.isDefault && (
                   <Button
                     type="button"
@@ -150,7 +166,13 @@ const CategoryManager: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) setError("");
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add category</DialogTitle>
@@ -198,13 +220,21 @@ const CategoryManager: React.FC = () => {
                   ))}
                 </ToggleGroup>
               </Field>
+              {error && <FieldError role="alert">{error}</FieldError>}
             </FieldGroup>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSaving}
+                onClick={() => setIsOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Add</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Adding..." : "Add"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -213,7 +243,10 @@ const CategoryManager: React.FC = () => {
       <AlertDialog
         open={Boolean(deletingCategory)}
         onOpenChange={(open) => {
-          if (!open) setDeletingCategory(null);
+          if (!open) {
+            setDeletingCategory(null);
+            setError("");
+          }
         }}
       >
         <AlertDialogContent>
@@ -226,8 +259,9 @@ const CategoryManager: React.FC = () => {
               Existing transactions keep their saved category name.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {error && <FieldError role="alert">{error}</FieldError>}
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setError("")}>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={confirmDelete}>
               Delete
             </AlertDialogAction>

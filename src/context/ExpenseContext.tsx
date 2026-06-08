@@ -13,6 +13,7 @@ import {
   Expense,
   Category,
   ExpenseContextType,
+  MutationResult,
   ScheduledTransaction,
 } from "@/types/expense";
 import { defaultCategories } from "@/utils/expense-utils";
@@ -20,6 +21,19 @@ import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 
 const ExpenseContext = createContext<ExpenseContextType | undefined>(undefined);
+
+async function getResponseError(response: Response, fallback: string) {
+  try {
+    const data = await response.json();
+    return typeof data.error === "string" ? data.error : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getNetworkError(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export const useExpense = () => {
   const context = useContext(ExpenseContext);
@@ -46,8 +60,8 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   const processedUserIdRef = useRef<number | null>(null);
 
   const deleteExpense = useCallback(
-    async (id: string) => {
-      if (!user) return;
+    async (id: string): Promise<MutationResult> => {
+      if (!user) return { ok: false, error: "Sign in to delete transactions." };
 
       try {
         const response = await fetch(`/api/expenses?id=${id}`, {
@@ -55,18 +69,32 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
           credentials: "include",
         });
 
-        if (response.ok) {
-          setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+        if (!response.ok) {
+          return {
+            ok: false,
+            error: await getResponseError(response, "Could not delete transaction."),
+          };
         }
+
+        setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+        return { ok: true, data: undefined };
       } catch (error) {
         console.error("Failed to delete expense:", error);
+        return {
+          ok: false,
+          error: getNetworkError(error, "Could not delete transaction."),
+        };
       }
     },
     [user]
   );
 
-  const processDueScheduledTransactions = useCallback(async () => {
-    if (!user) return;
+  const processDueScheduledTransactions = useCallback(async (): Promise<
+    MutationResult<{ expenses: Expense[]; schedules: ScheduledTransaction[] }>
+  > => {
+    if (!user) {
+      return { ok: false, error: "Sign in to process scheduled transactions." };
+    }
 
     try {
       const response = await fetch("/api/scheduled-transactions/process", {
@@ -78,7 +106,15 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         body: JSON.stringify({ today: new Date().toISOString().split("T")[0] }),
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(
+            response,
+            "Could not check scheduled transactions."
+          ),
+        };
+      }
 
       const data: {
         expenses?: Expense[];
@@ -127,8 +163,17 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
           })
         );
       }
+
+      return {
+        ok: true,
+        data: { expenses: generatedExpenses, schedules: updatedSchedules },
+      };
     } catch (error) {
       console.error("Failed to process scheduled transactions:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not check scheduled transactions."),
+      };
     }
   }, [deleteExpense, user]);
 
@@ -210,8 +255,10 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     }
   }, [theme]);
 
-  const addExpense = async (expense: Omit<Expense, "id" | "createdAt">) => {
-    if (!user) return;
+  const addExpense = async (
+    expense: Omit<Expense, "id" | "createdAt">
+  ): Promise<MutationResult<Expense>> => {
+    if (!user) return { ok: false, error: "Sign in to add transactions." };
 
     try {
       const response = await fetch("/api/expenses", {
@@ -223,20 +270,30 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         body: JSON.stringify(expense),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setExpenses((prev) => [data.expense, ...prev]);
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not add transaction."),
+        };
       }
+
+      const data = await response.json();
+      setExpenses((prev) => [data.expense, ...prev]);
+      return { ok: true, data: data.expense };
     } catch (error) {
       console.error("Failed to add expense:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not add transaction."),
+      };
     }
   };
 
   const updateExpense = async (
     id: string,
     updatedExpense: Partial<Expense>
-  ) => {
-    if (!user) return;
+  ): Promise<MutationResult<Expense>> => {
+    if (!user) return { ok: false, error: "Sign in to update transactions." };
 
     try {
       const response = await fetch("/api/expenses", {
@@ -248,19 +305,31 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         body: JSON.stringify({ id, ...updatedExpense }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setExpenses((prev) =>
-          prev.map((expense) => (expense.id === id ? data.expense : expense))
-        );
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not update transaction."),
+        };
       }
+
+      const data = await response.json();
+      setExpenses((prev) =>
+        prev.map((expense) => (expense.id === id ? data.expense : expense))
+      );
+      return { ok: true, data: data.expense };
     } catch (error) {
       console.error("Failed to update expense:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not update transaction."),
+      };
     }
   };
 
-  const addCategory = async (category: Omit<Category, "id">) => {
-    if (!user) return;
+  const addCategory = async (
+    category: Omit<Category, "id">
+  ): Promise<MutationResult<Category>> => {
+    if (!user) return { ok: false, error: "Sign in to add categories." };
 
     try {
       const response = await fetch("/api/categories", {
@@ -272,32 +341,54 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         body: JSON.stringify(category),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCategories((prev) => [...prev, data.category]);
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not add category."),
+        };
       }
+
+      const data = await response.json();
+      setCategories((prev) => [...prev, data.category]);
+      return { ok: true, data: data.category };
     } catch (error) {
       console.error("Failed to add category:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not add category."),
+      };
     }
   };
 
-  const deleteCategory = async (id: string) => {
-    if (!user) return;
+  const deleteCategory = async (id: string): Promise<MutationResult> => {
+    if (!user) return { ok: false, error: "Sign in to delete categories." };
 
     const category = categories.find((cat) => cat.id === id);
-    if (category && !category.isDefault) {
-      try {
-        const response = await fetch(`/api/categories?id=${id}`, {
-          method: "DELETE",
-          credentials: "include",
-        });
+    if (!category || category.isDefault) {
+      return { ok: false, error: "Default categories cannot be deleted." };
+    }
 
-        if (response.ok) {
-          setCategories((prev) => prev.filter((cat) => cat.id !== id));
-        }
-      } catch (error) {
-        console.error("Failed to delete category:", error);
+    try {
+      const response = await fetch(`/api/categories?id=${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not delete category."),
+        };
       }
+
+      setCategories((prev) => prev.filter((cat) => cat.id !== id));
+      return { ok: true, data: undefined };
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not delete category."),
+      };
     }
   };
 
@@ -307,8 +398,10 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
 
   const addScheduledTransaction = async (
     schedule: Omit<ScheduledTransaction, "id" | "createdAt">
-  ) => {
-    if (!user) return;
+  ): Promise<MutationResult<ScheduledTransaction>> => {
+    if (!user) {
+      return { ok: false, error: "Sign in to add scheduled transactions." };
+    }
 
     try {
       const response = await fetch("/api/scheduled-transactions", {
@@ -320,23 +413,35 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         body: JSON.stringify(schedule),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setScheduledTransactions((prev) => [
-          data.scheduledTransaction,
-          ...prev,
-        ]);
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not add schedule."),
+        };
       }
+
+      const data = await response.json();
+      setScheduledTransactions((prev) => [
+        data.scheduledTransaction,
+        ...prev,
+      ]);
+      return { ok: true, data: data.scheduledTransaction };
     } catch (error) {
       console.error("Failed to add scheduled transaction:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not add schedule."),
+      };
     }
   };
 
   const updateScheduledTransaction = async (
     id: string,
     schedule: Partial<ScheduledTransaction>
-  ) => {
-    if (!user) return;
+  ): Promise<MutationResult<ScheduledTransaction>> => {
+    if (!user) {
+      return { ok: false, error: "Sign in to update scheduled transactions." };
+    }
 
     try {
       const response = await fetch("/api/scheduled-transactions", {
@@ -348,21 +453,35 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         body: JSON.stringify({ id, ...schedule }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setScheduledTransactions((prev) =>
-          prev.map((item) =>
-            item.id === id ? data.scheduledTransaction : item
-          )
-        );
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not update schedule."),
+        };
       }
+
+      const data = await response.json();
+      setScheduledTransactions((prev) =>
+        prev.map((item) =>
+          item.id === id ? data.scheduledTransaction : item
+        )
+      );
+      return { ok: true, data: data.scheduledTransaction };
     } catch (error) {
       console.error("Failed to update scheduled transaction:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not update schedule."),
+      };
     }
   };
 
-  const deleteScheduledTransaction = async (id: string) => {
-    if (!user) return;
+  const deleteScheduledTransaction = async (
+    id: string
+  ): Promise<MutationResult> => {
+    if (!user) {
+      return { ok: false, error: "Sign in to delete scheduled transactions." };
+    }
 
     try {
       const response = await fetch(`/api/scheduled-transactions?id=${id}`, {
@@ -370,11 +489,21 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         credentials: "include",
       });
 
-      if (response.ok) {
-        setScheduledTransactions((prev) => prev.filter((item) => item.id !== id));
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(response, "Could not delete schedule."),
+        };
       }
+
+      setScheduledTransactions((prev) => prev.filter((item) => item.id !== id));
+      return { ok: true, data: undefined };
     } catch (error) {
       console.error("Failed to delete scheduled transaction:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not delete schedule."),
+      };
     }
   };
 

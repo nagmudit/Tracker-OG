@@ -230,6 +230,7 @@ const SplitBills: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to load split events:", error);
+      toast.error("Could not load split events");
     } finally {
       setIsLoading(false);
     }
@@ -355,6 +356,7 @@ const SplitBills: React.FC = () => {
       setEditingEvent(null);
     } catch (error) {
       console.error("Failed to save split event:", error);
+      setError(error instanceof Error ? error.message : "Could not save event.");
     }
   };
 
@@ -424,6 +426,7 @@ const SplitBills: React.FC = () => {
       setEditingExpense(null);
     } catch (error) {
       console.error("Failed to save split expense:", error);
+      setError(error instanceof Error ? error.message : "Could not save expense.");
     }
   };
 
@@ -473,6 +476,7 @@ const SplitBills: React.FC = () => {
       setEditingSettlement(null);
     } catch (error) {
       console.error("Failed to save settlement:", error);
+      setError(error instanceof Error ? error.message : "Could not save payback.");
     }
   };
 
@@ -508,6 +512,7 @@ const SplitBills: React.FC = () => {
       setDeleteTarget(null);
     } catch (error) {
       console.error("Failed to delete split item:", error);
+      toast.error("Could not delete item");
     }
   };
 

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useExpense } from "@/context/ExpenseContext";
 import { calculateTotals, formatCurrency } from "@/utils/expense-utils";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +25,21 @@ const timeOptions: Array<{ value: TimeFilter; label: string }> = [
   { value: "all", label: "All" },
 ];
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onAddTransaction?: () => void;
+  onViewTransactions?: () => void;
+}
+
+const transactionDateFormatter = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+const Dashboard: React.FC<DashboardProps> = ({
+  onAddTransaction,
+  onViewTransactions,
+}) => {
   const { expenses } = useExpense();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
 
@@ -163,13 +178,15 @@ const Dashboard: React.FC = () => {
         <CardHeader className="border-b border-border pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl">Recent Transactions</CardTitle>
-            <button
+            <Button
               type="button"
-              className="flex items-center gap-1 text-sm font-semibold text-primary"
+              variant="ghost"
+              size="sm"
+              onClick={onViewTransactions}
             >
               View All
-              <ChevronRight />
-            </button>
+              <ChevronRight data-icon="inline-end" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -184,6 +201,11 @@ const Dashboard: React.FC = () => {
                   Add a transaction to see your latest activity here.
                 </EmptyDescription>
               </EmptyHeader>
+              {onAddTransaction && (
+                <Button type="button" onClick={onAddTransaction}>
+                  Add Transaction
+                </Button>
+              )}
             </Empty>
           ) : (
             <div className="flex flex-col divide-y divide-border">
@@ -201,7 +223,9 @@ const Dashboard: React.FC = () => {
                         {transaction.category}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(transaction.date).toLocaleDateString()} |{" "}
+                        {transactionDateFormatter.format(
+                          new Date(`${transaction.date}T00:00:00`)
+                        )} |{" "}
                         {transaction.paymentMethod.replace("-", " ")}
                       </p>
                     </div>

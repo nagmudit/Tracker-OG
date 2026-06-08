@@ -3,17 +3,14 @@
 import React, { useState } from "react";
 import {
   AlertTriangle,
-  Bell,
-  ChevronRight,
   Database,
   Download,
   Moon,
   Palette,
   Sun,
   Trash2,
-  UserCircle,
 } from "lucide-react";
-import CategoryManager from "@/components/CategoryManager";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useExpense } from "@/context/ExpenseContext";
 import {
@@ -36,7 +33,14 @@ import { Separator } from "@/components/ui/separator";
 
 const ProfileManager: React.FC = () => {
   const { user, logout } = useAuth();
-  const { clearData, theme, toggleTheme } = useExpense();
+  const {
+    categories,
+    clearData,
+    expenses,
+    scheduledTransactions,
+    theme,
+    toggleTheme,
+  } = useExpense();
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
@@ -58,6 +62,76 @@ const ProfileManager: React.FC = () => {
     setDeleteAccountConfirm("");
     setDeleteDataConfirm("");
     setError("");
+  };
+
+  const csvEscape = (value: string | number | boolean | undefined) => {
+    const text = String(value ?? "");
+    return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  };
+
+  const toCsv = (title: string, rows: Array<Record<string, string | number | boolean | undefined>>) => {
+    if (rows.length === 0) return `${title}\nNo records\n`;
+
+    const headers = Object.keys(rows[0]);
+    return [
+      title,
+      headers.map(csvEscape).join(","),
+      ...rows.map((row) => headers.map((header) => csvEscape(row[header])).join(",")),
+    ].join("\n");
+  };
+
+  const exportData = () => {
+    const sections = [
+      toCsv(
+        "Transactions",
+        expenses.map((expense) => ({
+          id: expense.id,
+          date: expense.date,
+          type: expense.transactionType,
+          amount: expense.amount,
+          category: expense.category,
+          paymentMethod: expense.paymentMethod,
+          description: expense.description,
+          createdAt: expense.createdAt,
+        }))
+      ),
+      toCsv(
+        "Categories",
+        categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          color: category.color,
+          isDefault: category.isDefault,
+        }))
+      ),
+      toCsv(
+        "Scheduled Transactions",
+        scheduledTransactions.map((schedule) => ({
+          id: schedule.id,
+          title: schedule.title,
+          nextRunDate: schedule.nextRunDate,
+          frequency: schedule.frequency,
+          active: schedule.active,
+          type: schedule.transactionType,
+          amount: schedule.amount,
+          category: schedule.category,
+          paymentMethod: schedule.paymentMethod,
+          description: schedule.description,
+        }))
+      ),
+    ];
+
+    const blob = new Blob([sections.join("\n\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `money-log-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+    toast.success("Export downloaded");
   };
 
   const handleDeleteAccount = async () => {
@@ -110,6 +184,7 @@ const ProfileManager: React.FC = () => {
 
       clearData();
       closeDialogs();
+      toast.success("Data deleted");
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -134,14 +209,6 @@ const ProfileManager: React.FC = () => {
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <Button
-              type="button"
-              size="icon"
-              className="absolute bottom-0 right-0 rounded-full"
-              aria-label="Edit profile"
-            >
-              <UserCircle />
-            </Button>
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-3xl font-bold text-foreground">
@@ -159,16 +226,14 @@ const ProfileManager: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
-          <button type="button" className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted">
-            <UserCircle className="text-primary" />
-            <span className="flex-1 text-lg font-medium">Account Details</span>
-            <ChevronRight className="text-muted-foreground" />
-          </button>
-          <button type="button" className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted">
-            <Bell className="text-primary" />
-            <span className="flex-1 text-lg font-medium">Notifications</span>
-            <ChevronRight className="text-muted-foreground" />
-          </button>
+          <div className="flex flex-col gap-1 rounded-lg p-3">
+            <span className="text-sm text-muted-foreground">Name</span>
+            <span className="break-words text-lg font-medium">{user?.name}</span>
+          </div>
+          <div className="flex flex-col gap-1 rounded-lg p-3">
+            <span className="text-sm text-muted-foreground">Email</span>
+            <span className="break-all text-lg font-medium">{user?.email}</span>
+          </div>
         </CardContent>
       </Card>
 
@@ -207,9 +272,13 @@ const ProfileManager: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
-          <button type="button" className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted">
+          <button
+            type="button"
+            className="flex items-center gap-4 rounded-lg p-3 text-left hover:bg-muted"
+            onClick={exportData}
+          >
             <Download className="text-primary" />
-            <span className="flex-1 text-lg font-medium">Export Data (CSV/PDF)</span>
+            <span className="flex-1 text-lg font-medium">Export Data (CSV)</span>
             <Download className="text-muted-foreground" />
           </button>
           <button
@@ -234,10 +303,6 @@ const ProfileManager: React.FC = () => {
           </Button>
         </CardContent>
       </Card>
-
-      <div className="lg:hidden">
-        <CategoryManager />
-      </div>
 
       <AlertDialog open={showDeleteAccountModal} onOpenChange={setShowDeleteAccountModal}>
         <AlertDialogContent>

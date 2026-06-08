@@ -260,8 +260,8 @@
 
   .balance-panel {
     background:
-      radial-gradient(circle at 18% 12%, color-mix(in srgb, #ffffff 18%, transparent), transparent 32%),
-      linear-gradient(135deg, #5149ef 0%, #3525cd 100%);
-    color: #ffffff;
+      radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--primary-foreground) 18%, transparent), transparent 32%),
+      linear-gradient(135deg, color-mix(in srgb, var(--primary) 82%, var(--primary-foreground)) 0%, var(--primary) 100%);
+    color: var(--primary-foreground);
   }
 }

@@ -40,6 +40,8 @@ const securityQuestions = [
 function Message({ type, text }: { type: "error" | "success"; text: string }) {
   return (
     <Card
+      role={type === "error" ? "alert" : "status"}
+      aria-live="polite"
       size="sm"
       className={
         type === "error"
@@ -57,6 +59,7 @@ function PasswordInput({
   name,
   value,
   placeholder,
+  autoComplete,
   show,
   setShow,
   onChange,
@@ -65,6 +68,7 @@ function PasswordInput({
   name: string;
   value: string;
   placeholder: string;
+  autoComplete: string;
   show: boolean;
   setShow: (show: boolean) => void;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -77,6 +81,7 @@ function PasswordInput({
         name={name}
         type={show ? "text" : "password"}
         required
+        autoComplete={autoComplete}
         className="pl-9 pr-10"
         placeholder={placeholder}
         value={value}
@@ -336,6 +341,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                       name="email"
                       type="email"
                       required
+                      autoComplete="email"
+                      spellCheck={false}
                       className="pl-9"
                       placeholder="you@example.com"
                       value={resetData.email}
@@ -370,6 +377,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     id="security-answer"
                     name="securityAnswer"
                     required
+                    autoComplete="off"
                     placeholder="Your answer"
                     value={resetData.securityAnswer}
                     onChange={handleResetInputChange}
@@ -382,6 +390,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     name="newPassword"
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="New password"
                     value={resetData.newPassword}
                     onChange={handleResetInputChange}
@@ -394,6 +403,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     name="confirmNewPassword"
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="Confirm new password"
                     value={resetData.confirmNewPassword}
                     onChange={handleResetInputChange}
@@ -452,6 +462,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     id="name"
                     name="name"
                     required
+                    autoComplete="name"
                     className="pl-9"
                     placeholder="Your name"
                     value={formData.name}
@@ -470,6 +481,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                   name="email"
                   type="email"
                   required
+                  autoComplete="email"
+                  spellCheck={false}
                   className="pl-9"
                   placeholder="you@example.com"
                   value={formData.email}
@@ -485,6 +498,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                 name="password"
                 value={formData.password}
                 placeholder="Password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 show={showPassword}
                 setShow={setShowPassword}
                 onChange={handleInputChange}
@@ -500,6 +514,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     placeholder="Confirm password"
+                    autoComplete="new-password"
                     show={showConfirmPassword}
                     setShow={setShowConfirmPassword}
                     onChange={handleInputChange}
@@ -538,6 +553,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     id="securityAnswer"
                     name="securityAnswer"
                     required
+                    autoComplete="off"
                     placeholder="Your answer"
                     value={formData.securityAnswer}
                     onChange={handleInputChange}

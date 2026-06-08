@@ -102,6 +102,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const { addExpense, updateExpense, categories } = useExpense();
   const [internalOpen, setInternalOpen] = useState(false);
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : internalOpen;
   const isEditing = Boolean(expense);
@@ -157,6 +158,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSaving) return;
+
     const amount = Number.parseFloat(formData.amount);
 
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -178,10 +181,18 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       date: formData.date,
     };
 
-    if (expense) {
-      await updateExpense(expense.id, payload);
-    } else {
-      await addExpense(payload);
+    setIsSaving(true);
+    const result = expense
+      ? await updateExpense(expense.id, payload)
+      : await addExpense(payload);
+    setIsSaving(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    if (!expense) {
       localStorage.setItem("last-category", formData.category);
       localStorage.setItem("last-payment-method", formData.paymentMethod);
     }
@@ -422,16 +433,21 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 />
               </Field>
 
-              {error && <FieldError>{error}</FieldError>}
+              {error && <FieldError role="alert">{error}</FieldError>}
             </FieldGroup>
 
             <SheetFooter className="sticky bottom-0 -mx-5 border-t border-border bg-popover px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="grid grid-cols-2 gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSaving}
+                  onClick={() => setOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" size="lg">
-                  {isEditing ? "Save" : "Add"}
+                <Button type="submit" size="lg" disabled={isSaving}>
+                  {isSaving ? "Saving..." : isEditing ? "Save" : "Add"}
                 </Button>
               </div>
             </SheetFooter>

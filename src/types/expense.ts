@@ -34,19 +34,23 @@ export interface Category {
   isDefault: boolean;
 }
 
+export type MutationResult<T = void> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
 export interface ExpenseContextType {
   expenses: Expense[];
   categories: Category[];
-  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
-  deleteExpense: (id: string) => void;
-  updateExpense: (id: string, expense: Partial<Expense>) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<MutationResult<Expense>>;
+  deleteExpense: (id: string) => Promise<MutationResult>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<MutationResult<Expense>>;
   scheduledTransactions: ScheduledTransaction[];
-  addScheduledTransaction: (schedule: Omit<ScheduledTransaction, 'id' | 'createdAt'>) => Promise<void>;
-  updateScheduledTransaction: (id: string, schedule: Partial<ScheduledTransaction>) => Promise<void>;
-  deleteScheduledTransaction: (id: string) => Promise<void>;
-  processDueScheduledTransactions: () => Promise<void>;
-  addCategory: (category: Omit<Category, 'id'>) => void;
-  deleteCategory: (id: string) => void;
+  addScheduledTransaction: (schedule: Omit<ScheduledTransaction, 'id' | 'createdAt'>) => Promise<MutationResult<ScheduledTransaction>>;
+  updateScheduledTransaction: (id: string, schedule: Partial<ScheduledTransaction>) => Promise<MutationResult<ScheduledTransaction>>;
+  deleteScheduledTransaction: (id: string) => Promise<MutationResult>;
+  processDueScheduledTransactions: () => Promise<MutationResult<{ expenses: Expense[]; schedules: ScheduledTransaction[] }>>;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<MutationResult<Category>>;
+  deleteCategory: (id: string) => Promise<MutationResult>;
   reloadData: () => Promise<void>;
   clearData: () => void;
   theme: 'light' | 'dark';

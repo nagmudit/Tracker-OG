@@ -1,5 +1,5 @@
 import { Expense, Category } from '@/types/expense';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 
 export const defaultCategories: Category[] = [
   { id: '1', name: 'Salary', color: 'chart-1', isDefault: true },
@@ -93,4 +93,30 @@ export const calculateTotals = (expenses: Expense[]) => {
     totalIncome,
     netBalance: totalIncome - totalExpenses,
   };
+};
+
+export const getNetSavingsComparison = (
+  expenses: Expense[],
+  range: 'week' | 'month'
+) => {
+  const now = new Date();
+  const currentStart =
+    range === 'week' ? subDays(now, 7) : startOfMonth(now);
+  const currentEnd = now;
+  const previousStart =
+    range === 'week' ? subDays(now, 14) : startOfMonth(subMonths(now, 1));
+  const previousEnd =
+    range === 'week' ? currentStart : endOfMonth(subMonths(now, 1));
+
+  const current = calculateTotals(
+    filterExpensesByDateRange(expenses, currentStart, currentEnd)
+  ).netBalance;
+  const previous = calculateTotals(
+    filterExpensesByDateRange(expenses, previousStart, previousEnd)
+  ).netBalance;
+  const difference = current - previous;
+  const percent =
+    previous === 0 ? null : Math.round((difference / Math.abs(previous)) * 100);
+
+  return { current, previous, difference, percent };
 };

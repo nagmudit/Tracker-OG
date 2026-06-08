@@ -21,6 +21,7 @@ import {
   formatCurrency,
   getCategoryBreakdown,
   getMonthlyTrends,
+  getNetSavingsComparison,
 } from "@/utils/expense-utils";
 import { tokenToCssVar } from "@/utils/theme-colors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +55,16 @@ const Analytics: React.FC = () => {
       monthlyTrends: getMonthlyTrends(expenses),
     };
   }, [expenses]);
+  const netSavingsComparison = useMemo(
+    () => getNetSavingsComparison(expenses, range),
+    [expenses, range]
+  );
+  const comparisonCopy =
+    netSavingsComparison.percent === null
+      ? `${formatCurrency(netSavingsComparison.current)} this ${range}; no previous ${range} baseline yet`
+      : `${netSavingsComparison.percent >= 0 ? "+" : ""}${
+          netSavingsComparison.percent
+        }% vs previous ${range}`;
 
   const categoryData = Object.entries(analytics.categoryBreakdown).map(
     ([category, amount], index) => {
@@ -160,7 +171,15 @@ const Analytics: React.FC = () => {
               >
                 {formatCurrency(analytics.netBalance)}
               </p>
-              <p className="text-sm font-semibold text-success">8% vs last {range}</p>
+              <p
+                className={
+                  netSavingsComparison.difference >= 0
+                    ? "text-sm font-semibold text-success"
+                    : "text-sm font-semibold text-destructive"
+                }
+              >
+                {comparisonCopy}
+              </p>
               <Separator />
               <div className="grid grid-cols-2 gap-3 text-left sm:grid-cols-3">
                 <div className="rounded-lg border border-border bg-card p-4">
