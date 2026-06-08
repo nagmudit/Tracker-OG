@@ -72,7 +72,10 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         if (!response.ok) {
           return {
             ok: false,
-            error: await getResponseError(response, "Could not delete transaction."),
+            error: await getResponseError(
+              response,
+              "Could not delete transaction.",
+            ),
           };
         }
 
@@ -86,7 +89,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         };
       }
     },
-    [user]
+    [user],
   );
 
   const processDueScheduledTransactions = useCallback(async (): Promise<
@@ -111,7 +114,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
           ok: false,
           error: await getResponseError(
             response,
-            "Could not check scheduled transactions."
+            "Could not check scheduled transactions.",
           ),
         };
       }
@@ -127,7 +130,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
         setExpenses((prev) => {
           const existingIds = new Set(prev.map((expense) => expense.id));
           const nextExpenses = generatedExpenses.filter(
-            (expense) => !existingIds.has(expense.id)
+            (expense) => !existingIds.has(expense.id),
           );
           return [...nextExpenses, ...prev];
         });
@@ -147,7 +150,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
                 window.dispatchEvent(
                   new CustomEvent("money-log:edit-transaction", {
                     detail: expense,
-                  })
+                  }),
                 );
               },
             },
@@ -158,9 +161,11 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
       if (updatedSchedules.length > 0) {
         setScheduledTransactions((prev) =>
           prev.map((schedule) => {
-            const updated = updatedSchedules.find((item) => item.id === schedule.id);
+            const updated = updatedSchedules.find(
+              (item) => item.id === schedule.id,
+            );
             return updated || schedule;
-          })
+          }),
         );
       }
 
@@ -172,7 +177,10 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
       console.error("Failed to process scheduled transactions:", error);
       return {
         ok: false,
-        error: getNetworkError(error, "Could not check scheduled transactions."),
+        error: getNetworkError(
+          error,
+          "Could not check scheduled transactions.",
+        ),
       };
     }
   }, [deleteExpense, user]);
@@ -225,7 +233,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     } else {
       // Check for system preference if no saved theme
       const systemPrefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
+        "(prefers-color-scheme: dark)",
       ).matches;
       setTheme(systemPrefersDark ? "dark" : "light");
     }
@@ -256,7 +264,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   }, [theme]);
 
   const addExpense = async (
-    expense: Omit<Expense, "id" | "createdAt">
+    expense: Omit<Expense, "id" | "createdAt">,
   ): Promise<MutationResult<Expense>> => {
     if (!user) return { ok: false, error: "Sign in to add transactions." };
 
@@ -289,9 +297,50 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     }
   };
 
+  const addExpensesBulk = async (
+    expensesPayload: Omit<Expense, "id" | "createdAt">[],
+  ): Promise<MutationResult<Expense[]>> => {
+    if (!user) return { ok: false, error: "Sign in to add transactions." };
+
+    try {
+      const response = await fetch("/api/expenses/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ expenses: expensesPayload }),
+      });
+
+      if (!response.ok) {
+        return {
+          ok: false,
+          error: await getResponseError(
+            response,
+            "Could not add transactions.",
+          ),
+        };
+      }
+
+      const data = await response.json();
+      setExpenses((prev) =>
+        [...data.expenses, ...prev].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        ),
+      );
+      return { ok: true, data: data.expenses };
+    } catch (error) {
+      console.error("Failed to add expenses in bulk:", error);
+      return {
+        ok: false,
+        error: getNetworkError(error, "Could not add transactions."),
+      };
+    }
+  };
+
   const updateExpense = async (
     id: string,
-    updatedExpense: Partial<Expense>
+    updatedExpense: Partial<Expense>,
   ): Promise<MutationResult<Expense>> => {
     if (!user) return { ok: false, error: "Sign in to update transactions." };
 
@@ -308,13 +357,16 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
       if (!response.ok) {
         return {
           ok: false,
-          error: await getResponseError(response, "Could not update transaction."),
+          error: await getResponseError(
+            response,
+            "Could not update transaction.",
+          ),
         };
       }
 
       const data = await response.json();
       setExpenses((prev) =>
-        prev.map((expense) => (expense.id === id ? data.expense : expense))
+        prev.map((expense) => (expense.id === id ? data.expense : expense)),
       );
       return { ok: true, data: data.expense };
     } catch (error) {
@@ -327,7 +379,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   };
 
   const addCategory = async (
-    category: Omit<Category, "id">
+    category: Omit<Category, "id">,
   ): Promise<MutationResult<Category>> => {
     if (!user) return { ok: false, error: "Sign in to add categories." };
 
@@ -397,7 +449,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   };
 
   const addScheduledTransaction = async (
-    schedule: Omit<ScheduledTransaction, "id" | "createdAt">
+    schedule: Omit<ScheduledTransaction, "id" | "createdAt">,
   ): Promise<MutationResult<ScheduledTransaction>> => {
     if (!user) {
       return { ok: false, error: "Sign in to add scheduled transactions." };
@@ -421,10 +473,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
       }
 
       const data = await response.json();
-      setScheduledTransactions((prev) => [
-        data.scheduledTransaction,
-        ...prev,
-      ]);
+      setScheduledTransactions((prev) => [data.scheduledTransaction, ...prev]);
       return { ok: true, data: data.scheduledTransaction };
     } catch (error) {
       console.error("Failed to add scheduled transaction:", error);
@@ -437,7 +486,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
 
   const updateScheduledTransaction = async (
     id: string,
-    schedule: Partial<ScheduledTransaction>
+    schedule: Partial<ScheduledTransaction>,
   ): Promise<MutationResult<ScheduledTransaction>> => {
     if (!user) {
       return { ok: false, error: "Sign in to update scheduled transactions." };
@@ -462,9 +511,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
 
       const data = await response.json();
       setScheduledTransactions((prev) =>
-        prev.map((item) =>
-          item.id === id ? data.scheduledTransaction : item
-        )
+        prev.map((item) => (item.id === id ? data.scheduledTransaction : item)),
       );
       return { ok: true, data: data.scheduledTransaction };
     } catch (error) {
@@ -477,7 +524,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
   };
 
   const deleteScheduledTransaction = async (
-    id: string
+    id: string,
   ): Promise<MutationResult> => {
     if (!user) {
       return { ok: false, error: "Sign in to delete scheduled transactions." };
@@ -517,6 +564,7 @@ export const ExpenseProvider: React.FC<ExpenseProviderProps> = ({
     expenses,
     categories,
     addExpense,
+    addExpensesBulk,
     deleteExpense,
     updateExpense,
     scheduledTransactions,

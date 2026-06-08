@@ -324,6 +324,43 @@ export async function createExpense(userId: number, expense: Omit<Expense, 'crea
   return { changes: result.rowCount ?? 0 };
 }
 
+export async function createExpenses(userId: number, expenses: Omit<Expense, 'createdAt'>[]) {
+  if (expenses.length === 0) return { changes: 0 };
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const values: any[] = [];
+  const valueStrings: string[] = [];
+  
+  expenses.forEach((expense, index) => {
+    const offset = index * 10;
+    valueStrings.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`);
+    
+    values.push(
+      expense.id,
+      userId,
+      expense.amount,
+      expense.category,
+      expense.paymentMethod,
+      expense.transactionType,
+      expense.description || null,
+      expense.date,
+      expense.generatedFromScheduleId || null,
+      expense.generatedForDate || null
+    );
+  });
+
+  const result = await query(
+    `INSERT INTO expenses (
+       id, user_id, amount, category, payment_method, transaction_type, description, date,
+       generated_schedule_id, generated_schedule_date
+     )
+     VALUES ${valueStrings.join(', ')}`,
+    values
+  );
+  
+  return { changes: result.rowCount ?? 0 };
+}
+
 export async function getUserScheduledTransactions(userId: number) {
   const result = await query<ScheduledTransactionRow>(
     `SELECT id, title, amount, category, payment_method, transaction_type, description,

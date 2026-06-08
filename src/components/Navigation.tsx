@@ -14,6 +14,7 @@ import {
   Settings,
   Sun,
   UserCog,
+  FileSpreadsheet,
 } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import ExpenseList from "@/components/ExpenseList";
@@ -23,6 +24,7 @@ import ProfileManager from "@/components/ProfileManager";
 import ExpenseForm from "@/components/ExpenseForm";
 import ScheduledTransactions from "@/components/ScheduledTransactions";
 import SplitBills from "@/components/SplitBills";
+import { TransactionImporter } from "@/components/TransactionImporter";
 import { useAuth } from "@/context/AuthContext";
 import { useExpense } from "@/context/ExpenseContext";
 import { Expense } from "@/types/expense";
@@ -61,10 +63,36 @@ const mobileNavItems = [
 ] as const;
 
 const mobileMoreItems = [
-  { id: "scheduled", label: "Scheduled", description: "Recurring entries", icon: CalendarClock },
-  { id: "split", label: "Split Bills", description: "Shared expenses", icon: HandCoins },
-  { id: "categories", label: "Categories", description: "Spending groups", icon: Settings },
-  { id: "profile", label: "Profile", description: "Account and data", icon: UserCog },
+  {
+    id: "scheduled",
+    label: "Scheduled",
+    description: "Recurring entries",
+    icon: CalendarClock,
+  },
+  {
+    id: "split",
+    label: "Split Bills",
+    description: "Shared expenses",
+    icon: HandCoins,
+  },
+  {
+    id: "categories",
+    label: "Categories",
+    description: "Spending groups",
+    icon: Settings,
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    description: "Account and data",
+    icon: UserCog,
+  },
+  {
+    id: "import",
+    label: "Import Data",
+    description: "Upload UPI CSV/Excel",
+    icon: FileSpreadsheet,
+  },
 ] as const;
 
 type AppTab = (typeof desktopNavItems)[number]["id"];
@@ -72,8 +100,11 @@ type AppTab = (typeof desktopNavItems)[number]["id"];
 const Navigation: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [isImporterOpen, setIsImporterOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Expense | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Expense | null>(
+    null,
+  );
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useExpense();
 
@@ -86,11 +117,14 @@ const Navigation: React.FC = () => {
       setActiveTab("transactions");
     };
 
-    window.addEventListener("money-log:edit-transaction", handleEditTransaction);
+    window.addEventListener(
+      "money-log:edit-transaction",
+      handleEditTransaction,
+    );
     return () => {
       window.removeEventListener(
         "money-log:edit-transaction",
-        handleEditTransaction
+        handleEditTransaction,
       );
     };
   }, []);
@@ -102,7 +136,7 @@ const Navigation: React.FC = () => {
       .join("")
       .slice(0, 2)
       .toUpperCase() || "U";
-  const moreTabIds: AppTab[] = mobileMoreItems.map((item) => item.id);
+  const moreTabIds = mobileMoreItems.map((item) => item.id) as string[];
   const isMoreActive = moreTabIds.includes(activeTab);
 
   const renderContent = () => {
@@ -137,12 +171,8 @@ const Navigation: React.FC = () => {
         <div className="flex h-full flex-col gap-7 p-6">
           <div className="flex flex-col gap-1">
             <div>
-              <h1 className="text-3xl font-bold text-primary">
-                Money Log
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Wealth Management
-              </p>
+              <h1 className="text-3xl font-bold text-primary">Money Log</h1>
+              <p className="text-sm text-muted-foreground">Wealth Management</p>
             </div>
           </div>
 
@@ -159,7 +189,9 @@ const Navigation: React.FC = () => {
                 <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {user?.name}
                 </p>
-                <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {user?.email}
+                </p>
               </div>
               <Tooltip>
                 <TooltipTrigger
@@ -213,6 +245,16 @@ const Navigation: React.FC = () => {
             <Button
               type="button"
               variant="outline"
+              size="lg"
+              className="w-full justify-start"
+              onClick={() => setIsImporterOpen(true)}
+            >
+              <FileSpreadsheet data-icon="inline-start" />
+              Import UPI
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
               className="w-full justify-start border-transparent bg-transparent text-destructive hover:bg-destructive/10"
               onClick={logout}
             >
@@ -261,8 +303,7 @@ const Navigation: React.FC = () => {
             const Icon = item.icon;
             const isAdd = item.id === "add";
             const isMore = item.id === "more";
-            const isActive =
-              activeTab === item.id || (isMore && isMoreActive);
+            const isActive = activeTab === item.id || (isMore && isMoreActive);
 
             return (
               <Button
@@ -317,7 +358,11 @@ const Navigation: React.FC = () => {
                   variant={isActive ? "default" : "ghost"}
                   className="h-auto justify-start gap-3 rounded-lg p-4 text-left"
                   onClick={() => {
-                    setActiveTab(item.id);
+                    if (item.id === "import") {
+                      setIsImporterOpen(true);
+                    } else {
+                      setActiveTab(item.id as AppTab);
+                    }
                     setIsMoreOpen(false);
                   }}
                 >
@@ -351,6 +396,11 @@ const Navigation: React.FC = () => {
         expense={editingTransaction}
         hideTrigger
         onSaved={() => setEditingTransaction(null)}
+      />
+
+      <TransactionImporter
+        open={isImporterOpen}
+        onOpenChange={setIsImporterOpen}
       />
     </div>
   );

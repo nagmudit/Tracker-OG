@@ -42,6 +42,7 @@ export interface ExpenseContextType {
   expenses: Expense[];
   categories: Category[];
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<MutationResult<Expense>>;
+  addExpensesBulk: (expenses: Omit<Expense, 'id' | 'createdAt'>[]) => Promise<MutationResult<Expense[]>>;
   deleteExpense: (id: string) => Promise<MutationResult>;
   updateExpense: (id: string, expense: Partial<Expense>) => Promise<MutationResult<Expense>>;
   scheduledTransactions: ScheduledTransaction[];
